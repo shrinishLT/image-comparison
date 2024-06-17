@@ -4,7 +4,7 @@
 #include <iostream>
 
 ImageComparator::ImageComparator(const std::string& imgPath1, const std::string& imgPath2)
-    : imgPath1(imgPath1), imgPath2(imgPath2), mismatchPaintColor(cv::Vec3b(0, 0, 255)), ignoreAntialiasing(true), ignoreColors(false) {} // Default values
+    : imgPath1(imgPath1), imgPath2(imgPath2), mismatchPaintColor(cv::Vec3b(0, 0, 255)), ignoreAntialiasing(true), ignoreColors(false), ignoreAlpha(false) {} // Default values
 
 void ImageComparator::setMismatchPaintColor(const cv::Vec3b& color) {
     mismatchPaintColor = color;
@@ -18,6 +18,10 @@ void ImageComparator::setIgnoreColors(bool value) {
     ignoreColors = value;
 }
 
+void ImageComparator::setIgnoreAlpha(bool value) {
+    ignoreAlpha = value;
+}
+
 bool ImageComparator::comparePixels(const cv::Mat& img1, const cv::Mat& img2, int x, int y, int width, int height) const {
     try {
         if (x >= width || y >= height) {
@@ -27,6 +31,11 @@ bool ImageComparator::comparePixels(const cv::Mat& img1, const cv::Mat& img2, in
 
         cv::Vec4b pixel1 = img1.at<cv::Vec4b>(y, x);
         cv::Vec4b pixel2 = img2.at<cv::Vec4b>(y, x);
+
+        if (ignoreAlpha) {
+            pixel1[3] = 255; // Set alpha to 255 (opaque) for comparison
+            pixel2[3] = 255;
+        }
 
         if (ignoreColors) {
             double intensity1 = 0.2989 * pixel1[2] + 0.5870 * pixel1[1] + 0.1140 * pixel1[0];

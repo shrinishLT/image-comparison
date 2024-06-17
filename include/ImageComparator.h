@@ -11,6 +11,7 @@ public:
     void setMismatchPaintColor(const cv::Vec3b& color);
     void setIgnoreAntialiasing(bool value);
     void setIgnoreColors(bool value);
+    void setIgnoreAlpha(bool value); 
     void exactComparison(const std::string& outputPath) const;
 
 private:
@@ -19,6 +20,7 @@ private:
     cv::Vec3b mismatchPaintColor;
     bool ignoreAntialiasing;
     bool ignoreColors;
+    bool ignoreAlpha;
 
     bool comparePixels(const cv::Mat& img1, const cv::Mat& img2, int x, int y, int width, int height) const;
 };
