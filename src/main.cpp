@@ -1,4 +1,5 @@
 #include "ImageComparator.h"
+#include "ErrorPixelTransform.h"
 #include <iostream>
 #include <sstream>
 
@@ -12,6 +13,22 @@ cv::Vec3b parseColor(const std::string& colorStr) {
     return cv::Vec3b(b, g, r);
 }
 
+void setErrorPixelTransformFunction(ImageComparator& comparator, const std::string& transformType) {
+    if (transformType == "flat") {
+        comparator.setErrorPixelTransform(ErrorPixelTransform::flat);
+    } else if (transformType == "movement") {
+        comparator.setErrorPixelTransform(ErrorPixelTransform::movement);
+    } else if (transformType == "flatDifferenceIntensity") {
+        comparator.setErrorPixelTransform(ErrorPixelTransform::flatDifferenceIntensity);
+    } else if (transformType == "movementDifferenceIntensity") {
+        comparator.setErrorPixelTransform(ErrorPixelTransform::movementDifferenceIntensity);
+    } else if (transformType == "diffOnly") {
+        comparator.setErrorPixelTransform(ErrorPixelTransform::diffOnly);
+    } else {
+        std::cerr << "Unknown transform type: " << transformType << std::endl;
+    }
+}
+
 int main(int argc, char** argv) {
     // Directories and paths
     std::string baseImageDir = "../images/base";
@@ -22,7 +39,8 @@ int main(int argc, char** argv) {
     cv::Vec3b mismatchColor = cv::Vec3b(0, 0, 255); // Default red color
     bool ignoreAntialiasing = true; // Default true
     bool ignoreColors = false; // Default false
-    bool ignoreAlpha = true; // Default false
+    bool ignoreAlpha = false; // Default false
+    std::string transformType = "movement"; // Default transform type
 
     // Loop through each image and compare
     for (int i = 1; i < 5; ++i) {
@@ -35,6 +53,7 @@ int main(int argc, char** argv) {
         comparator.setIgnoreAntialiasing(ignoreAntialiasing);
         comparator.setIgnoreColors(ignoreColors);
         comparator.setIgnoreAlpha(ignoreAlpha);
+        setErrorPixelTransformFunction(comparator, transformType);
         comparator.exactComparison(outputPath);
 
         std::cout << "Output image: " << outputPath << "\n";

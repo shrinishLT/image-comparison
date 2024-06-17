@@ -1,10 +1,11 @@
 #include "ImageComparator.h"
 #include "ImageUtils.h"
+#include "ErrorPixelTransform.h"
 #include <opencv2/opencv.hpp>
 #include <iostream>
 
 ImageComparator::ImageComparator(const std::string& imgPath1, const std::string& imgPath2)
-    : imgPath1(imgPath1), imgPath2(imgPath2), mismatchPaintColor(cv::Vec3b(0, 0, 255)), ignoreAntialiasing(true), ignoreColors(false), ignoreAlpha(false) {} // Default values
+    : imgPath1(imgPath1), imgPath2(imgPath2), mismatchPaintColor(cv::Vec3b(0, 0, 255)), ignoreAntialiasing(true), ignoreColors(false), ignoreAlpha(false), errorPixelTransform(ErrorPixelTransform::flat) {} // Default values
 
 void ImageComparator::setMismatchPaintColor(const cv::Vec3b& color) {
     mismatchPaintColor = color;
@@ -20,6 +21,10 @@ void ImageComparator::setIgnoreColors(bool value) {
 
 void ImageComparator::setIgnoreAlpha(bool value) {
     ignoreAlpha = value;
+}
+
+void ImageComparator::setErrorPixelTransform(void (*transformFunc)(cv::Vec4b&, const cv::Vec4b&, const cv::Vec4b&, const cv::Vec4b&)) {
+    errorPixelTransform = transformFunc;
 }
 
 bool ImageComparator::comparePixels(const cv::Mat& img1, const cv::Mat& img2, int x, int y, int width, int height) const {
@@ -93,6 +98,9 @@ void ImageComparator::exactComparison(const std::string& outputPath) const {
         cv::Mat resultImg = (baseImg.rows >= compareImg.rows) ? baseImg.clone() : compareImg.clone();
         cv::resize(resultImg, resultImg, cv::Size(resultImg.cols, maxHeight));
 
+        // Convert mismatchPaintColor from Vec3b to Vec4b
+        cv::Vec4b mismatchColor4b(mismatchPaintColor[0], mismatchPaintColor[1], mismatchPaintColor[2], 255);
+
         int mismatchedPixels = 0;
         for (int y = 0; y < std::min(baseImg.rows, compareImg.rows); ++y) {
             for (int x = 0; x < baseImg.cols; ++x) {
@@ -101,7 +109,7 @@ void ImageComparator::exactComparison(const std::string& outputPath) const {
                         std::cerr << "Attempted to access pixel out of bounds at (" << x << ", " << y << ")" << std::endl;
                         continue;
                     }
-                    resultImg.at<cv::Vec4b>(y, x) = cv::Vec4b(mismatchPaintColor[0], mismatchPaintColor[1], mismatchPaintColor[2], 255); // Paint the pixel with the custom color
+                    errorPixelTransform(resultImg.at<cv::Vec4b>(y, x), baseImg.at<cv::Vec4b>(y, x), compareImg.at<cv::Vec4b>(y, x), mismatchColor4b); // Use the error pixel transform function
                     ++mismatchedPixels;
                 }
             }

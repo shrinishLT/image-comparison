@@ -14,6 +14,7 @@ include_directories(${OpenCV_INCLUDE_DIRS} include)
 set(SOURCES
     src/ImageComparator.cpp
     src/ImageUtils.cpp
+    src/ErrorPixelTransform.cpp
     src/main.cpp
 )
 
