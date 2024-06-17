@@ -1,0 +1,59 @@
+# Ignore binary files
+*.o
+*.a
+*.so
+*.dll
+*.dylib
+*.exe
+
+# Ignore build directories
+/build/
+build/
+
+# Ignore CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Ignore Visual Studio files
+*.vcxproj*
+*.vcxproj.filters
+*.pdb
+*.user
+*.suo
+*.sln
+*.ncb
+*.opensdf
+*.sdf
+*.ipch
+*.psess
+*.vsp
+*.vspx
+*.tlog
+*.idb
+*.obj
+*.pch
+*.rsrc.res
+
+# Ignore macOS files
+.DS_Store
+
+# Ignore Windows files
+Thumbs.db
+desktop.ini
+
+# Ignore code analysis tools
+*.idea/
+*.vscode/
+compile_commands.json
+
+# Ignore coverage reports
+*.gcda
+*.gcno
+*.gcov
+
+# Ignore logs and temporary files
+*.log
+*.tmp
+*.temp
