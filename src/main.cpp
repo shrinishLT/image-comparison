@@ -13,34 +13,33 @@ cv::Vec3b parseColor(const std::string& colorStr) {
 }
 
 int main(int argc, char** argv) {
-    if (argc < 4 || argc > 7) {
-        std::cerr << "Usage: " << argv[0] << " <base_image> <compare_image> <output_image> [<mismatch_color>] [<ignore_antialiasing>] [<ignore_colors>]" << std::endl;
-        std::cerr << "Mismatch color format: B,G,R (e.g., 0,0,255 for red)" << std::endl;
-        return -1;
-    }
+     // Directories and paths
+    std::string baseImageDir = "../images/base";
+    std::string compareImageDir = "../images/compare";
+    std::string outputDir = "../output/standard";
 
-    std::string imgPath1 = argv[1];
-    std::string imgPath2 = argv[2];
-    std::string outputPath = argv[3];
+    // Default options
+    cv::Vec3b mismatchColor = cv::Vec3b(0, 0, 255); // Default red color
+    bool ignoreAntialiasing = true; // Default true
+    bool ignoreColors = false; // Default false
+    // std::string transformType = "flat"; // Default transform type
 
-    ImageComparator comparator(imgPath1, imgPath2);
+    
+    // Loop through each image and compare
+    for (int i =1; i < 5; ++i) {
+        std::string baseImagePath = baseImageDir + "/base" + std::to_string(i) + ".png";
+        std::string compareImagePath = compareImageDir + "/compare" + std::to_string(i) + ".png";
+        std::string outputPath = outputDir + "/output" + std::to_string(i) + ".png";
 
-    if (argc >= 5) {
-        cv::Vec3b mismatchColor = parseColor(argv[4]);
+        ImageComparator comparator(baseImagePath, compareImagePath);
         comparator.setMismatchPaintColor(mismatchColor);
-    }
-
-    if (argc >= 6) {
-        bool ignoreAntialiasing = std::stoi(argv[5]);
         comparator.setIgnoreAntialiasing(ignoreAntialiasing);
-    }
-
-    if (argc == 7) {
-        bool ignoreColors = std::stoi(argv[6]);
         comparator.setIgnoreColors(ignoreColors);
-    }
+        // setErrorPixelTransformFunction(comparator, transformType);
+        comparator.exactComparison(outputPath);
 
-    comparator.exactComparison(outputPath);
+        std::cout << "Output image: " << outputPath << "\n";
+    }
 
     return 0;
 }
