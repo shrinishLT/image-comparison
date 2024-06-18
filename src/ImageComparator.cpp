@@ -6,7 +6,7 @@
 #include <cmath>
 
 ImageComparator::ImageComparator(const std::string& imgPath1, const std::string& imgPath2)
-    : imgPath1(imgPath1), imgPath2(imgPath2), mismatchPaintColor(cv::Vec3b(0, 0, 255)), ignoreAntialiasing(true), ignoreColors(false), ignoreAlpha(false), pixelThreshold(0.1), errorPixelTransform(ErrorPixelTransform::flat) {} // Default values
+    : imgPath1(imgPath1), imgPath2(imgPath2), mismatchPaintColor(cv::Vec3b(0, 0, 255)), ignoreAntialiasing(true), ignoreColors(false), ignoreAlpha(false), pixelThreshold(0.1), highlightTransparency(255), errorPixelTransform(ErrorPixelTransform::flat) {} // Default values
 
 void ImageComparator::setMismatchPaintColor(const cv::Vec3b& color) {
     mismatchPaintColor = color;
@@ -38,6 +38,10 @@ void ImageComparator::setIgnoreBoxes(const std::vector<Box>& boxes) {
     boundingBoxes.clear(); // Clear boundingBoxes if ignoreBoxes are set
 }
 
+void ImageComparator::setHighlightTransparency(int value) {
+    highlightTransparency = value;
+}
+
 void ImageComparator::setErrorPixelTransform(void (*transformFunc)(cv::Vec4b&, const cv::Vec4b&, const cv::Vec4b&, const cv::Vec4b&)) {
     errorPixelTransform = transformFunc;
 }
@@ -59,7 +63,7 @@ bool ImageComparator::isInIgnoreBox(int x, int y) const {
     }
     return false;
 }
-// returns true if there is a mismatch 
+
 bool ImageComparator::comparePixels(const cv::Mat& img1, const cv::Mat& img2, int x, int y, int width, int height) const {
     try {
         if (x >= width || y >= height) {
@@ -154,7 +158,7 @@ void ImageComparator::exactComparison(const std::string& outputPath) const {
         cv::Mat resultImg = baseCanvas.clone();
 
         // Convert mismatchPaintColor from Vec3b to Vec4b
-        cv::Vec4b mismatchColor4b(mismatchPaintColor[0], mismatchPaintColor[1], mismatchPaintColor[2], 255);
+        cv::Vec4b mismatchColor4b(mismatchPaintColor[0], mismatchPaintColor[1], mismatchPaintColor[2], highlightTransparency);
 
         int mismatchedPixels = 0;
         for (int y = 0; y < maxHeight; ++y) {

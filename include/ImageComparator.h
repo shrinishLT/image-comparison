@@ -23,6 +23,7 @@ public:
     void setPixelThreshold(double value);
     void setBoundingBoxes(const std::vector<Box>& boxes);
     void setIgnoreBoxes(const std::vector<Box>& boxes);
+    void setHighlightTransparency(int value); // New method to set transparency
     void setErrorPixelTransform(void (*transformFunc)(cv::Vec4b&, const cv::Vec4b&, const cv::Vec4b&, const cv::Vec4b&));
     void exactComparison(const std::string& outputPath) const;
 
@@ -34,6 +35,7 @@ private:
     bool ignoreColors;
     bool ignoreAlpha;
     double pixelThreshold;
+    int highlightTransparency; 
     std::vector<Box> boundingBoxes;
     std::vector<Box> ignoreBoxes;
     void (*errorPixelTransform)(cv::Vec4b&, const cv::Vec4b&, const cv::Vec4b&, const cv::Vec4b&);

@@ -56,6 +56,7 @@ int main(int argc, char** argv) {
     bool ignoreAlpha = false; // Default false
     double pixelThreshold = 0.1; // Default threshold value
     std::string transformType = "flat"; // Default transform type
+    int highlightTransparency = 255; // Default opaque ib case of transparent we keep it 128
     std::vector<Box> boundingBoxes;
     std::vector<Box> ignoreBoxes;
 
@@ -73,6 +74,8 @@ int main(int argc, char** argv) {
             pixelThreshold = std::stod(argv[++i]);
         } else if (std::string(argv[i]) == "--transformType" && i + 1 < argc) {
             transformType = argv[++i];
+        } else if (std::string(argv[i]) == "--highlightTransparency" && i + 1 < argc) {
+            highlightTransparency = std::stoi(argv[++i]);
         } else if (std::string(argv[i]) == "--boundingBoxes" && i + 4 < argc) {
             boundingBoxes = parseBoxes(argc, argv, i + 1);
             i += boundingBoxes.size() * 4;
@@ -94,6 +97,7 @@ int main(int argc, char** argv) {
         comparator.setIgnoreColors(ignoreColors);
         comparator.setIgnoreAlpha(ignoreAlpha);
         comparator.setPixelThreshold(pixelThreshold);
+        comparator.setHighlightTransparency(highlightTransparency);
         setErrorPixelTransformFunction(comparator, transformType);
 
         if (!boundingBoxes.empty()) {
