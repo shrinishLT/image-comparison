@@ -28,14 +28,50 @@ void ImageComparator::setPixelThreshold(double value) {
     pixelThreshold = value;
 }
 
+void ImageComparator::setBoundingBoxes(const std::vector<Box>& boxes) {
+    boundingBoxes = boxes;
+    ignoreBoxes.clear(); // Clear ignoreBoxes if boundingBoxes are set
+}
+
+void ImageComparator::setIgnoreBoxes(const std::vector<Box>& boxes) {
+    ignoreBoxes = boxes;
+    boundingBoxes.clear(); // Clear boundingBoxes if ignoreBoxes are set
+}
+
 void ImageComparator::setErrorPixelTransform(void (*transformFunc)(cv::Vec4b&, const cv::Vec4b&, const cv::Vec4b&, const cv::Vec4b&)) {
     errorPixelTransform = transformFunc;
 }
 
+bool ImageComparator::isInBoundingBox(int x, int y) const {
+    for (const auto& box : boundingBoxes) {
+        if (x >= box.left && x <= box.right && y >= box.top && y <= box.bottom) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool ImageComparator::isInIgnoreBox(int x, int y) const {
+    for (const auto& box : ignoreBoxes) {
+        if (x >= box.left && x <= box.right && y >= box.top && y <= box.bottom) {
+            return true;
+        }
+    }
+    return false;
+}
+// returns true if there is a mismatch 
 bool ImageComparator::comparePixels(const cv::Mat& img1, const cv::Mat& img2, int x, int y, int width, int height) const {
     try {
         if (x >= width || y >= height) {
             std::cerr << "Pixel access out of bounds at (" << x << ", " << y << ")" << std::endl;
+            return false;
+        }
+
+        if (!boundingBoxes.empty() && !isInBoundingBox(x, y)) {
+            return false;
+        }
+
+        if (!ignoreBoxes.empty() && isInIgnoreBox(x, y)) {
             return false;
         }
 

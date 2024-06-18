@@ -13,6 +13,20 @@ cv::Vec3b parseColor(const std::string& colorStr) {
     return cv::Vec3b(b, g, r);
 }
 
+std::vector<Box> parseBoxes(int argc, char** argv, int startIndex) {
+    std::vector<Box> boxes;
+    for (int i = startIndex; i < argc; i += 4) {
+        if (i + 3 < argc) {
+            int top = std::stoi(argv[i]);
+            int left = std::stoi(argv[i + 1]);
+            int bottom = std::stoi(argv[i + 2]);
+            int right = std::stoi(argv[i + 3]);
+            boxes.emplace_back(Box{top, left, bottom, right});
+        }
+    }
+    return boxes;
+}
+
 void setErrorPixelTransformFunction(ImageComparator& comparator, const std::string& transformType) {
     if (transformType == "flat") {
         comparator.setErrorPixelTransform(ErrorPixelTransform::flat);
@@ -42,6 +56,8 @@ int main(int argc, char** argv) {
     bool ignoreAlpha = false; // Default false
     double pixelThreshold = 0.1; // Default threshold value
     std::string transformType = "flat"; // Default transform type
+    std::vector<Box> boundingBoxes;
+    std::vector<Box> ignoreBoxes;
 
     // Process command line arguments
     for (int i = 1; i < argc; ++i) {
@@ -57,6 +73,12 @@ int main(int argc, char** argv) {
             pixelThreshold = std::stod(argv[++i]);
         } else if (std::string(argv[i]) == "--transformType" && i + 1 < argc) {
             transformType = argv[++i];
+        } else if (std::string(argv[i]) == "--boundingBoxes" && i + 4 < argc) {
+            boundingBoxes = parseBoxes(argc, argv, i + 1);
+            i += boundingBoxes.size() * 4;
+        } else if (std::string(argv[i]) == "--ignoreBoxes" && i + 4 < argc) {
+            ignoreBoxes = parseBoxes(argc, argv, i + 1);
+            i += ignoreBoxes.size() * 4;
         }
     }
 
@@ -73,6 +95,13 @@ int main(int argc, char** argv) {
         comparator.setIgnoreAlpha(ignoreAlpha);
         comparator.setPixelThreshold(pixelThreshold);
         setErrorPixelTransformFunction(comparator, transformType);
+
+        if (!boundingBoxes.empty()) {
+            comparator.setBoundingBoxes(boundingBoxes);
+        } else if (!ignoreBoxes.empty()) {
+            comparator.setIgnoreBoxes(ignoreBoxes);
+        }
+
         comparator.exactComparison(outputPath);
 
         std::cout << "Output image: " << outputPath << "\n";

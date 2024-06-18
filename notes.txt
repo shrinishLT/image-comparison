@@ -1,9 +1,10 @@
 // TO BE DONE 
- Handle case where the extra height should be pianted all as unmatched ,or else wrong % -- done 
-6. Add Ignore and Draw 
+Handle case where the extra height should be pianted all as unmatched ,or else wrong % -- done 
 7. Add transparency : Opaque / transparent 
 8. Scale to same size feature 
 9. Add ignoreDisplacementComparison with all the current features 
+
+// non primitive features
 9.2: Add largeImage handling 
 10. Unit Tests 
 11. Logging Framework 
