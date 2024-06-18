@@ -3,9 +3,10 @@
 #include "ErrorPixelTransform.h"
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include <cmath>
 
 ImageComparator::ImageComparator(const std::string& imgPath1, const std::string& imgPath2)
-    : imgPath1(imgPath1), imgPath2(imgPath2), mismatchPaintColor(cv::Vec3b(0, 0, 255)), ignoreAntialiasing(true), ignoreColors(false), ignoreAlpha(false), errorPixelTransform(ErrorPixelTransform::flat) {} // Default values
+    : imgPath1(imgPath1), imgPath2(imgPath2), mismatchPaintColor(cv::Vec3b(0, 0, 255)), ignoreAntialiasing(true), ignoreColors(false), ignoreAlpha(false), pixelThreshold(0.1), errorPixelTransform(ErrorPixelTransform::flat) {} // Default values
 
 void ImageComparator::setMismatchPaintColor(const cv::Vec3b& color) {
     mismatchPaintColor = color;
@@ -21,6 +22,10 @@ void ImageComparator::setIgnoreColors(bool value) {
 
 void ImageComparator::setIgnoreAlpha(bool value) {
     ignoreAlpha = value;
+}
+
+void ImageComparator::setPixelThreshold(double value) {
+    pixelThreshold = value;
 }
 
 void ImageComparator::setErrorPixelTransform(void (*transformFunc)(cv::Vec4b&, const cv::Vec4b&, const cv::Vec4b&, const cv::Vec4b&)) {
@@ -49,7 +54,16 @@ bool ImageComparator::comparePixels(const cv::Mat& img1, const cv::Mat& img2, in
                 return false;
             }
         } else {
-            if (pixel1 == pixel2) {
+            // Calculate Euclidean distance between the pixels
+            double distance = std::sqrt(
+                std::pow(static_cast<double>(pixel1[0]) - pixel2[0], 2.0) +
+                std::pow(static_cast<double>(pixel1[1]) - pixel2[1], 2.0) +
+                std::pow(static_cast<double>(pixel1[2]) - pixel2[2], 2.0) +
+                std::pow(static_cast<double>(pixel1[3]) - pixel2[3], 2.0)
+            );
+
+            double maxDistance = std::sqrt(4.0 * 255.0 * 255.0);
+            if (distance / maxDistance < pixelThreshold) {
                 return false;
             }
         }
@@ -81,12 +95,10 @@ void ImageComparator::exactComparison(const std::string& outputPath) const {
             return;
         }
 
-        if (baseImg.cols != compareImg.cols) {
-            std::cerr << "Images do not have the same width!" << std::endl;
-            return;
-        }
+        int maxWidth = std::max(baseImg.cols, compareImg.cols);
+        int maxHeight = std::max(baseImg.rows, compareImg.rows);
 
-        // Convert images to 4 channels if they don't have enough channels
+        // Ensure both images have 4 channels
         if (baseImg.channels() < 4) {
             cv::cvtColor(baseImg, baseImg, cv::COLOR_BGR2BGRA);
         }
@@ -94,28 +106,31 @@ void ImageComparator::exactComparison(const std::string& outputPath) const {
             cv::cvtColor(compareImg, compareImg, cv::COLOR_BGR2BGRA);
         }
 
-        int maxHeight = std::max(baseImg.rows, compareImg.rows);
-        cv::Mat resultImg = (baseImg.rows >= compareImg.rows) ? baseImg.clone() : compareImg.clone();
-        cv::resize(resultImg, resultImg, cv::Size(resultImg.cols, maxHeight));
+        // Create a new canvas with the max dimensions and fill with a background color (e.g., black)
+        cv::Mat canvas = cv::Mat::zeros(maxHeight, maxWidth, CV_8UC4);
+        cv::Mat baseCanvas = canvas.clone();
+        cv::Mat compareCanvas = canvas.clone();
+
+        // Copy baseImg and compareImg into their respective canvases
+        baseImg.copyTo(baseCanvas(cv::Rect(0, 0, baseImg.cols, baseImg.rows)));
+        compareImg.copyTo(compareCanvas(cv::Rect(0, 0, compareImg.cols, compareImg.rows)));
+
+        cv::Mat resultImg = baseCanvas.clone();
 
         // Convert mismatchPaintColor from Vec3b to Vec4b
         cv::Vec4b mismatchColor4b(mismatchPaintColor[0], mismatchPaintColor[1], mismatchPaintColor[2], 255);
 
         int mismatchedPixels = 0;
-        for (int y = 0; y < std::min(baseImg.rows, compareImg.rows); ++y) {
-            for (int x = 0; x < baseImg.cols; ++x) {
-                if (comparePixels(baseImg, compareImg, x, y, baseImg.cols, baseImg.rows)) {
-                    if (x >= resultImg.cols || y >= resultImg.rows) {
-                        std::cerr << "Attempted to access pixel out of bounds at (" << x << ", " << y << ")" << std::endl;
-                        continue;
-                    }
-                    errorPixelTransform(resultImg.at<cv::Vec4b>(y, x), baseImg.at<cv::Vec4b>(y, x), compareImg.at<cv::Vec4b>(y, x), mismatchColor4b); // Use the error pixel transform function
+        for (int y = 0; y < maxHeight; ++y) {
+            for (int x = 0; x < maxWidth; ++x) {
+                if (comparePixels(baseCanvas, compareCanvas, x, y, maxWidth, maxHeight)) {
+                    errorPixelTransform(resultImg.at<cv::Vec4b>(y, x), baseCanvas.at<cv::Vec4b>(y, x), compareCanvas.at<cv::Vec4b>(y, x), mismatchColor4b); // Use the error pixel transform function
                     ++mismatchedPixels;
                 }
             }
         }
 
-        double mismatchPercentage = 100.0 * mismatchedPixels / (baseImg.rows * baseImg.cols);
+        double mismatchPercentage = 100.0 * mismatchedPixels / (maxHeight * maxWidth);
         std::cout << "Mismatch Percentage: " << mismatchPercentage << "%" << std::endl;
 
         cv::imwrite(outputPath, resultImg);

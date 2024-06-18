@@ -40,7 +40,25 @@ int main(int argc, char** argv) {
     bool ignoreAntialiasing = true; // Default true
     bool ignoreColors = false; // Default false
     bool ignoreAlpha = false; // Default false
-    std::string transformType = "movement"; // Default transform type
+    double pixelThreshold = 0.1; // Default threshold value
+    std::string transformType = "flat"; // Default transform type
+
+    // Process command line arguments
+    for (int i = 1; i < argc; ++i) {
+        if (std::string(argv[i]) == "--mismatchColor" && i + 1 < argc) {
+            mismatchColor = parseColor(argv[++i]);
+        } else if (std::string(argv[i]) == "--ignoreAntialiasing" && i + 1 < argc) {
+            ignoreAntialiasing = std::stoi(argv[++i]) != 0;
+        } else if (std::string(argv[i]) == "--ignoreColors" && i + 1 < argc) {
+            ignoreColors = std::stoi(argv[++i]) != 0;
+        } else if (std::string(argv[i]) == "--ignoreAlpha" && i + 1 < argc) {
+            ignoreAlpha = std::stoi(argv[++i]) != 0;
+        } else if (std::string(argv[i]) == "--pixelThreshold" && i + 1 < argc) {
+            pixelThreshold = std::stod(argv[++i]);
+        } else if (std::string(argv[i]) == "--transformType" && i + 1 < argc) {
+            transformType = argv[++i];
+        }
+    }
 
     // Loop through each image and compare
     for (int i = 1; i < 5; ++i) {
@@ -53,6 +71,7 @@ int main(int argc, char** argv) {
         comparator.setIgnoreAntialiasing(ignoreAntialiasing);
         comparator.setIgnoreColors(ignoreColors);
         comparator.setIgnoreAlpha(ignoreAlpha);
+        comparator.setPixelThreshold(pixelThreshold);
         setErrorPixelTransformFunction(comparator, transformType);
         comparator.exactComparison(outputPath);
 
