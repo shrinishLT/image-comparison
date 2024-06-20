@@ -48,17 +48,19 @@ int main(int argc, char** argv) {
     std::string baseImageDir = "../images/base";
     std::string compareImageDir = "../images/compare";
     std::string outputDir = "../output/standard";
+    std::string outputDisplacementDir = "../output/hide_diff";
 
     // Default options
     cv::Vec3b mismatchColor = cv::Vec3b(0, 0, 255); // Default red color
     bool ignoreAntialiasing = true; // Default true
     bool ignoreColors = false; // Default false
-    bool ignoreAlpha = false; // Default false
+    bool ignoreAlpha =  false; // Default false
     double pixelThreshold = 0.1; // Default threshold value
-    std::string transformType = "flat"; // Default transform type
-    int highlightTransparency = 255; // Default opaque ib case of transparent we keep it 128
+    std::string transformType = "movement"; // Default transform type
+    int highlightTransparency = 255; // Default opaque (for transparent use 128 (50% transparent))
     std::vector<Box> boundingBoxes;
     std::vector<Box> ignoreBoxes;
+    bool useIgnoreDisplacements = false;
 
     // Process command line arguments
     for (int i = 1; i < argc; ++i) {
@@ -82,14 +84,16 @@ int main(int argc, char** argv) {
         } else if (std::string(argv[i]) == "--ignoreBoxes" && i + 4 < argc) {
             ignoreBoxes = parseBoxes(argc, argv, i + 1);
             i += ignoreBoxes.size() * 4;
+        } else if (std::string(argv[i]) == "--useIgnoreDisplacements") {
+            useIgnoreDisplacements = true;
         }
     }
 
     // Loop through each image and compare
-    for (int i = 1; i < 5; ++i) {
+    for (int i = 1; i < 6; ++i) {
         std::string baseImagePath = baseImageDir + "/base" + std::to_string(i) + ".png";
         std::string compareImagePath = compareImageDir + "/compare" + std::to_string(i) + ".png";
-        std::string outputPath = outputDir + "/output" + std::to_string(i) + ".png";
+        std::string outputPath = outputDisplacementDir + "/output" + std::to_string(i) + ".png";
 
         ImageComparator comparator(baseImagePath, compareImagePath);
         comparator.setMismatchPaintColor(mismatchColor);
@@ -105,8 +109,10 @@ int main(int argc, char** argv) {
         } else if (!ignoreBoxes.empty()) {
             comparator.setIgnoreBoxes(ignoreBoxes);
         }
+        std::cout << "ignore Starts" << std::endl;
 
-        comparator.exactComparison(outputPath);
+        // comparator.exactComparison(outputPath); 
+        comparator.ignoreDisplacementsComparison(outputPath);
 
         std::cout << "Output image: " << outputPath << "\n";
     }

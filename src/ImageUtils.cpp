@@ -2,6 +2,8 @@
 #include <cmath>
 #include <algorithm>
 
+const double ImageUtils::maxEuclideanDistanceBetweenPixels = std::sqrt(4.0 * 255.0 * 255.0);
+
 bool ImageUtils::antialiased(const cv::Mat& img1, int x1, int y1, int width, int height, const cv::Mat& img2) {
     int x0 = std::max(x1 - 1, 0);
     int y0 = std::max(y1 - 1, 0);
@@ -105,4 +107,30 @@ void ImageUtils::blendRGB(double& r, double& g, double& b, double a) {
     r = r * a + (1 - a) * 255;
     g = g * a + (1 - a) * 255;
     b = b * a + (1 - a) * 255;
+}
+
+bool ImageUtils::isWithinThreshold(int pixelThreshold, cv::Vec4b pixel1, cv::Vec4b pixel2){
+    // Calculate Euclidean distance between the pixels
+    double distance = std::sqrt(
+        std::pow(static_cast<double>(pixel1[0]) - pixel2[0], 2.0) +
+        std::pow(static_cast<double>(pixel1[1]) - pixel2[1], 2.0) +
+        std::pow(static_cast<double>(pixel1[2]) - pixel2[2], 2.0) +
+        std::pow(static_cast<double>(pixel1[3]) - pixel2[3], 2.0)
+    );
+
+    if (distance / maxEuclideanDistanceBetweenPixels < pixelThreshold) {
+        return true;
+    }
+
+    return false;
+}
+
+bool ImageUtils::doesIntensityMatch(cv::Vec4b pixel1, cv::Vec4b pixel2) {
+    double intensity1 = 0.2989 * pixel1[2] + 0.5870 * pixel1[1] + 0.1140 * pixel1[0];
+    double intensity2 = 0.2989 * pixel2[2] + 0.5870 * pixel2[1] + 0.1140 * pixel2[0];
+    if (std::abs(intensity1 - intensity2) < 1e-5) {
+        return true;
+    }
+
+    return false;
 }
