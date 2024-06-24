@@ -1,32 +1,53 @@
-// TO BE DONE 
-8. Scale to same size feature 
-// bind the mismatch percentage  
-// add error pixel transforms to images 
+//TO DO :
+1. correct calculation of mismatch percentage in case if ignore soelect and also discuss about mismatch % when image dimensions are diffrent
+2. correct implemetation of antialising 
+3. providing support for backaward compatibility for curent DCS.
+4. error handling for ignoreDraw ( overall a strong error handling over complete code review )
+5. separate out the concers and more readability 
+6. Handling for Seg faults 
 
+//optimization : lot of calls  for the compare pixels fnction at the root lvl 
+1. cache ignoreBoxes/ boundingBoxes resutls for every pixel so that we dont loop everytime over the results
+2. cache anitaliasing for every pixel at the max. 
 
-//optimization : it takes lot for the compare pixels fnction at the root lvl 
-1. cache antialising resluts for the image 
-2. cache ignoreBoxes/ boundingBoxes resutls for every pixel so that we dont loop everytime over the results
-// later on optimizations 
+// later on optimizations (if required )  // NOT TO BE DONE NOW 
 1. multithtreading for parellel loops 
 2. work around with LCS mutlitthreading algorithm
 
 
 #### TO DISCUSS :
 // which image to clone for result image ::: discussion  
-// work on input handling for the code  ::: discussion (backward compatibility)
+// work on input output  handling for the code  ::: discussion (backward compatibility)
 // some things around algorithm 
 discuss about height > 200 optimization  ::: discussion 
 
 
 // non primitive features
-9.2: Add largeImage handling (as we have to use canvas)
+9.2: Add largeImage handling (as we have to use canvas) --> to discuss  
 10. Unit Tests 
-11. Logging Framework 
-12. Error Handling Framework
+11. Logging Framework  ------> spd:logging 
+12. Error Handling Framework  -------> boost:leaf
 // check for memory leaks etc issues 
 // font smoothing corrections 
+
+
+// Future Features planned 
 // floating regions feature 
 // points of mismatch feature (red animation)
 // origin shift for ignore Draw 
-// error handling for ignoreDraw ( overall a strong error handling over complete code review )
+// DOM  parser for diffrences 
+// Layout parser 
+
+RUN: 
+cd build 
+cmake .. -DCMAKE_BUILD_TYPE=Release  (Debug)
+make
+./image_comparison
+
+
+// ADVANTAGES over resemble 
+1. faster by 4x , because in c++ 
+2. correct calculation of mismatch % in case of ignore select case 
+3. no pixelated images in case if alpha channels are not present and accurate error colors and feature shipping as opposed to resemble where pixels used to bloat due to poor error handling of alpha channels. 
+4. Liberty to add any new features as per custom request ------> font smoothing corrections POC in progress 
+5. Faster image comparisons in case of large case images, as now entire thing handled in c++ within library 

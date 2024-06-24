@@ -10,7 +10,7 @@
 
 
 ImageComparator::ImageComparator(const std::string& imgPath1, const std::string& imgPath2)
-    : imgPath1(imgPath1), imgPath2(imgPath2), mismatchPaintColor(cv::Vec3b(0, 0, 255)), ignoreAntialiasing(true), ignoreColors(false), ignoreAlpha(false), pixelThreshold(0.1), highlightTransparency(255), errorPixelTransform(ErrorPixelTransform::flat), canvasWidth(0), canvasHeight(0) {} // Default values
+    : imgPath1(imgPath1), imgPath2(imgPath2), mismatchPaintColor(cv::Vec3b(0, 0, 255)), ignoreAntialiasing(true), ignoreColors(false), ignoreAlpha(false), pixelThreshold(0.1), highlightTransparency(255), errorPixelTransform(ErrorPixelTransform::flat), canvasWidth(0), canvasHeight(0), scaleToSameSize(false), mismatchedPixels(0) {} // Default values
 
 void ImageComparator::setMismatchPaintColor(const cv::Vec3b& color) {
     mismatchPaintColor = color;
@@ -30,6 +30,10 @@ void ImageComparator::setIgnoreAlpha(bool value) {
 
 void ImageComparator::setPixelThreshold(double value) {
     pixelThreshold = value;
+}
+
+void ImageComparator::setScaleToSameSize(bool value) { 
+    scaleToSameSize = value;
 }
 
 void ImageComparator::setBoundingBoxes(const std::vector<Box>& boxes) {
@@ -117,7 +121,7 @@ bool ImageComparator::comparePixels(const cv::Mat& img1, const cv::Mat& img2, in
 
         }
 
-        if (ignoreAntialiasing && ImageUtils::antialiased(img1, x1, y1, img1.cols, img1.rows, img2) ) {
+        if (ignoreAntialiasing && ImageUtils::antialiased(img1, img2, x1, y1, x2, y2) ) {
             return false;
         }
 
@@ -145,11 +149,15 @@ void ImageComparator::exactComparison(const std::string& outputPath) const {
             return;
         }
 
-        int maxWidth = std::max(baseImg.cols, compareImg.cols);
-        int maxHeight = std::max(baseImg.rows, compareImg.rows);
+        canvasWidth = std::max(baseImg.cols, compareImg.cols);
+        canvasHeight = std::max(baseImg.rows, compareImg.rows);
 
+        if(scaleToSameSize){
+            cv::resize(baseImg, baseImg, cv::Size(canvasWidth, canvasHeight));
+            cv::resize(compareImg, compareImg, cv::Size(canvasWidth, canvasHeight));
+        }
 
-        // Ensure both images have 4 channels
+        // Ensure both images have 4 channels  --> This breaks comparisons in resemble.js 
         if (baseImg.channels() < 4) {
             cv::cvtColor(baseImg, baseImg, cv::COLOR_BGR2BGRA);
         }
@@ -158,7 +166,7 @@ void ImageComparator::exactComparison(const std::string& outputPath) const {
         }
 
         // Create a new canvas with the max dimensions and fill with a background color (e.g., black)
-        cv::Mat canvas = cv::Mat::zeros(maxHeight, maxWidth, CV_8UC4);
+        cv::Mat canvas = cv::Mat::zeros(canvasHeight, canvasWidth, CV_8UC4);
         cv::Mat baseCanvas = canvas.clone();
         cv::Mat compareCanvas = canvas.clone();
 
@@ -170,10 +178,9 @@ void ImageComparator::exactComparison(const std::string& outputPath) const {
 
         // Convert mismatchPaintColor from Vec3b to Vec4b
         cv::Vec4b mismatchColor4b(mismatchPaintColor[0], mismatchPaintColor[1], mismatchPaintColor[2], highlightTransparency);
-
-        int mismatchedPixels = 0;
-        for (int y = 0; y < maxHeight; ++y) {
-            for (int x = 0; x < maxWidth; ++x) {
+        mismatchedPixels = 0;
+        for (int y = 0; y < canvasHeight; ++y) {
+            for (int x = 0; x < canvasWidth; ++x) {
                 if (comparePixels(baseCanvas, compareCanvas, y, x, y, x)) {
                     errorPixelTransform(resultImg.at<cv::Vec4b>(y, x), baseCanvas.at<cv::Vec4b>(y, x), compareCanvas.at<cv::Vec4b>(y, x), mismatchColor4b); // Use the error pixel transform function
                     ++mismatchedPixels;
@@ -181,7 +188,7 @@ void ImageComparator::exactComparison(const std::string& outputPath) const {
             }
         }
 
-        double mismatchPercentage = 100.0 * mismatchedPixels / (maxHeight * maxWidth);
+        double mismatchPercentage = 100.0 * mismatchedPixels / (canvasHeight * canvasWidth);
         std::cout << "Mismatch Percentage: " << mismatchPercentage << "%" << std::endl;
 
         cv::imwrite(outputPath, resultImg);
@@ -206,6 +213,11 @@ void ImageComparator::ignoreDisplacementsComparison(const std::string& outputPat
         canvasWidth = std::max(baseImg.cols, compareImg.cols);
         canvasHeight = std::max(baseImg.rows, compareImg.rows);
 
+        if(scaleToSameSize){
+            cv::resize(baseImg, baseImg, cv::Size(canvasWidth, canvasHeight));
+            cv::resize(compareImg, compareImg, cv::Size(canvasWidth, canvasHeight));
+        }
+      
         // Ensure both images have 4 channels
         if (baseImg.channels() < 4) {
             cv::cvtColor(baseImg, baseImg, cv::COLOR_BGR2BGRA);
@@ -228,15 +240,12 @@ void ImageComparator::ignoreDisplacementsComparison(const std::string& outputPat
         // cv::cvtColor(baseImg,baseImg,cv::COLOR_BGR2GRAY);
         // cv::cvtColor(compareImg,compareImg,cv::COLOR_BGR2GRAY);
 
-        // Convert mismatchPaintColor from Vec3b to Vec4b
-        cv::Vec4b mismatchColor4b(mismatchPaintColor[0], mismatchPaintColor[1], mismatchPaintColor[2], highlightTransparency);
-
         std::vector<int> mismatchedRows;
         std::vector<int> toMatchWith(canvasHeight, -1);
 
         int startRow1 = 0, startRow2 = 0;
         int endRow1 = baseImg.rows - 1, endRow2 = compareImg.rows - 1;
-        int mismatchedPixels = 0;
+        mismatchedPixels = 0;
         int totalPixels = canvasWidth * canvasHeight;
 
         while (startRow1 < endRow1 && startRow2 < endRow2) {
@@ -244,7 +253,7 @@ void ImageComparator::ignoreDisplacementsComparison(const std::string& outputPat
             std::tie(endRow1, endRow2) = matchRows(endRow1, endRow2, -1, baseImg, compareImg);
 
             mismatchedRows.push_back(startRow2);
-            std::cout << startRow1 << " " << endRow1 << " " << endRow2 << std::endl;
+            std::cout << startRow1 << " " << endRow1 << " " << startRow2 << " " << endRow2 << std::endl;
 
             auto [height, bestRow] = getBestMatchingRectangle(startRow1, startRow2, endRow1, endRow2, baseImg, compareImg, mismatchedRows) ;
     
@@ -263,6 +272,7 @@ void ImageComparator::ignoreDisplacementsComparison(const std::string& outputPat
         cv::imwrite(outputPath, resultImg);
 
         double mismatchPercentage = 100.0 * mismatchedPixels / totalPixels;
+        std::cout << mismatchedPixels << std::endl;
         std::cout << "Mismatch Percentage: " << mismatchPercentage << "%" << std::endl;
 
     } catch (const cv::Exception& e) {
@@ -341,7 +351,9 @@ void ImageComparator::paintMismatchedCells(const std::vector<int>& toMatchWith, 
         }
         for (int col = 0; col < std::min(img1.cols,img2.cols); ++col) {
             if (row1 < img1.rows && row2 < img2.rows && comparePixels(img1, img2, static_cast<int>(row1), col, row2, col)) {
-                paintedImg.at<cv::Vec4b>(row1, col) = cv::Vec4b(mismatchPaintColor[0], mismatchPaintColor[1], mismatchPaintColor[2], highlightTransparency);
+                mismatchedPixels++;
+                cv::Vec4b mismatchColor4b(mismatchPaintColor[0], mismatchPaintColor[1], mismatchPaintColor[2], highlightTransparency);
+                errorPixelTransform(paintedImg.at<cv::Vec4b>(row1, col), img1.at<cv::Vec4b>(row1, col), img2.at<cv::Vec4b>(row2, col), mismatchColor4b); // Use the error pixel transform function
             }
         }
     }

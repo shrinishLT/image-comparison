@@ -4,38 +4,42 @@
 
 const double ImageUtils::maxEuclideanDistanceBetweenPixels = std::sqrt(4.0 * 255.0 * 255.0);
 
-bool ImageUtils::antialiased(const cv::Mat& img1, int x1, int y1, int width, int height, const cv::Mat& img2) {
-    int x0 = std::max(x1 - 1, 0);
-    int y0 = std::max(y1 - 1, 0);
-    int x2 = std::min(x1 + 1, width - 1);
-    int y2 = std::min(y1 + 1, height - 1);
-    int zeroes = int(x1 == x0 || x1 == x2 || y1 == y0 || y1 == y2);
-    double minDelta = 0.0, maxDelta = 0.0;
-    int min_x = 0, min_y = 0, max_x = 0, max_y = 0;
+bool ImageUtils::antialiased(const cv::Mat& img1, const cv::Mat& img2, int x1, int y1, int x2, int y2) {
+    // for 1st pixel 
+    // int width = img1.cols;
+    // int height = img1.rows;
+    // int x0 = std::max(x1 - 1, 0);
+    // int y0 = std::max(y1 - 1, 0);
+    // int x2 = std::min(x1 + 1, width - 1);
+    // int y2 = std::min(y1 + 1, height - 1);
+    // int zeroes = int(x1 == x0 || x1 == x2 || y1 == y0 || y1 == y2);
+    // double minDelta = 0.0, maxDelta = 0.0;
+    // int min_x = 0, min_y = 0, max_x = 0, max_y = 0;
 
-    for (int x = x0; x <= x2; ++x) {
-        for (int y = y0; y <= y2; ++y) {
-            if (x == x1 && y == y1) continue;
-            double delta = colorDelta(img1, img1, (y1 * width + x1) * 4, (y * width + x) * 4, true);
-            if (delta == 0) {
-                zeroes++;
-                if (zeroes > 2) return false;
-            } else if (delta < minDelta) {
-                minDelta = delta;
-                min_x = x;
-                min_y = y;
-            } else if (delta > maxDelta) {
-                maxDelta = delta;
-                max_x = x;
-                max_y = y;
-            }
-        }
-    }
+    // for (int x = x0; x <= x2; ++x) {
+    //     for (int y = y0; y <= y2; ++y) {
+    //         if (x == x1 && y == y1) continue;
+    //         double delta = colorDelta(img1, img1, (y1 * width + x1) * 4, (y * width + x) * 4, true);
+    //         if (delta == 0) {
+    //             zeroes++;
+    //             if (zeroes > 2) return false;
+    //         } else if (delta < minDelta) {
+    //             minDelta = delta;
+    //             min_x = x;
+    //             min_y = y;
+    //         } else if (delta > maxDelta) {
+    //             maxDelta = delta;
+    //             max_x = x;
+    //             max_y = y;
+    //         }
+    //     }
+    // }
 
-    if (minDelta == 0 || maxDelta == 0) return false;
+    // if (minDelta == 0 || maxDelta == 0) return false;
 
-    return (hasManySiblings(img1, min_x, min_y, width, height) && hasManySiblings(img2, min_x, min_y, width, height)) ||
-           (hasManySiblings(img1, max_x, max_y, width, height) && hasManySiblings(img2, max_x, max_y, width, height));
+    // return (hasManySiblings(img1, min_x, min_y, width, height) && hasManySiblings(img2, min_x, min_y, width, height)) ||
+    //        (hasManySiblings(img1, max_x, max_y, width, height) && hasManySiblings(img2, max_x, max_y, width, height));
+    return true;
 }
 
 bool ImageUtils::hasManySiblings(const cv::Mat& img, int x1, int y1, int width, int height) {

@@ -2,6 +2,15 @@
 #include "ErrorPixelTransform.h"
 #include <iostream>
 #include <sstream>
+#include <csignal>
+#include <cstdlib>
+
+void signalHandler(int signum) {
+    std::cerr << "Error: signal " << signum << " received." << std::endl;
+    // Cleanup and close up stuff here
+    // Terminate program
+    exit(signum);
+}
 
 cv::Vec3b parseColor(const std::string& colorStr) {
     std::stringstream ss(colorStr);
@@ -52,7 +61,7 @@ int main(int argc, char** argv) {
 
     // Default options
     cv::Vec3b mismatchColor = cv::Vec3b(0, 0, 255); // Default red color
-    bool ignoreAntialiasing = true; // Default true
+    bool ignoreAntialiasing = false; // Default true
     bool ignoreColors = false; // Default false
     bool ignoreAlpha =  false; // Default false
     double pixelThreshold = 0.1; // Default threshold value
@@ -90,7 +99,7 @@ int main(int argc, char** argv) {
     }
 
     // Loop through each image and compare
-    for (int i = 1; i < 6; ++i) {
+    for (int i = 6; i < 12; ++i) {
         std::string baseImagePath = baseImageDir + "/base" + std::to_string(i) + ".png";
         std::string compareImagePath = compareImageDir + "/compare" + std::to_string(i) + ".png";
         std::string outputPath = outputDisplacementDir + "/output" + std::to_string(i) + ".png";
@@ -111,7 +120,8 @@ int main(int argc, char** argv) {
         }
         std::cout << "ignore Starts" << std::endl;
 
-        // comparator.exactComparison(outputPath); 
+        comparator.exactComparison(outputPath); 
+        signal(SIGSEGV, signalHandler);
         comparator.ignoreDisplacementsComparison(outputPath);
 
         std::cout << "Output image: " << outputPath << "\n";

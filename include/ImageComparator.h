@@ -17,10 +17,12 @@ class ImageComparator {
 public:
     ImageComparator(const std::string& imgPath1, const std::string& imgPath2);
 
+    // Setters
     void setMismatchPaintColor(const cv::Vec3b& color);
     void setIgnoreAntialiasing(bool value);
     void setIgnoreColors(bool value);
     void setIgnoreAlpha(bool value);
+    void setScaleToSameSize(bool value);
     void setPixelThreshold(double value);
     void setBoundingBoxes(const std::vector<Box>& boxes);
     void setIgnoreBoxes(const std::vector<Box>& boxes);
@@ -36,6 +38,7 @@ private:
     bool ignoreAntialiasing;
     bool ignoreColors;
     bool ignoreAlpha;
+    bool scaleToSameSize;
     double pixelThreshold;
     int highlightTransparency;
     std::vector<Box> boundingBoxes;
@@ -44,6 +47,7 @@ private:
 
     mutable int canvasWidth;
     mutable int canvasHeight;
+    mutable int mismatchedPixels;
 
     // General Methods for Image comparisons 
     bool comparePixels(const cv::Mat& img1, const cv::Mat& img2, int x1, int y1, int x2, int y2) const;
