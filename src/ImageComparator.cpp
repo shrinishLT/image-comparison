@@ -80,8 +80,8 @@ bool ImageComparator::isInIgnoreBox(int x, int y) const {
 bool ImageComparator::comparePixels(const cv::Mat& img1, const cv::Mat& img2, int y1, int x1, int y2, int x2) const {
     try {
         if (x1 >= img1.cols  || y1 >= img1.rows || x2 >= img2.cols || y2 >= img2.rows) {
-            std::cerr << "Pixel access out of bounds" << std::endl;
-            return false;
+            // pixles dont exist in both cases so its a mismatch 
+            return true;
         }
        
         if (!boundingBoxes.empty() && !isInBoundingBox(x1, y1)) {
@@ -166,23 +166,32 @@ void ImageComparator::exactComparison(const std::string& outputPath) const {
         }
 
         // Create a new canvas with the max dimensions and fill with a background color (e.g., black)
-        cv::Mat canvas = cv::Mat::zeros(canvasHeight, canvasWidth, CV_8UC4);
-        cv::Mat baseCanvas = canvas.clone();
-        cv::Mat compareCanvas = canvas.clone();
+        cv::Mat resultCanvas = cv::Mat::zeros(canvasHeight, canvasWidth, CV_8UC4);
 
-        // Copy baseImg and compareImg into their respective canvases
-        baseImg.copyTo(baseCanvas(cv::Rect(0, 0, baseImg.cols, baseImg.rows)));
-        compareImg.copyTo(compareCanvas(cv::Rect(0, 0, compareImg.cols, compareImg.rows)));
+        // Copy the base image to the canvas
+        baseImg.copyTo(resultCanvas(cv::Rect(0, 0, baseImg.cols, baseImg.rows)));
 
-        cv::Mat resultImg = baseCanvas.clone();
+        // Copy the compare image to the canvas (with transparency)
+        compareImg.copyTo(resultCanvas(cv::Rect(0, 0, compareImg.cols, compareImg.rows)), compareImg);
 
         // Convert mismatchPaintColor from Vec3b to Vec4b
         cv::Vec4b mismatchColor4b(mismatchPaintColor[0], mismatchPaintColor[1], mismatchPaintColor[2], highlightTransparency);
         mismatchedPixels = 0;
+
         for (int y = 0; y < canvasHeight; ++y) {
             for (int x = 0; x < canvasWidth; ++x) {
-                if (comparePixels(baseCanvas, compareCanvas, y, x, y, x)) {
-                    errorPixelTransform(resultImg.at<cv::Vec4b>(y, x), baseCanvas.at<cv::Vec4b>(y, x), compareCanvas.at<cv::Vec4b>(y, x), mismatchColor4b); // Use the error pixel transform function
+                if (comparePixels(baseImg, compareImg, y, x, y, x)) {
+                    // what if this y,x doesnt exist for any of the images 
+                    cv::Vec4b basePixel = cv::Vec4b(0, 0, 0, 0); 
+                    cv::Vec4b comparePixel = cv::Vec4b(0, 0, 0, 0);
+
+                    if( x < baseImg.cols && y < baseImg.rows){
+                        basePixel = baseImg.at<cv::Vec4b>(y, x);
+                    } 
+                    if(x < compareImg.cols && y < compareImg.rows){
+                        comparePixel = compareImg.at<cv::Vec4b>(y, x);
+                    }
+                    errorPixelTransform(resultCanvas.at<cv::Vec4b>(y, x),basePixel,comparePixel, mismatchColor4b);
                     ++mismatchedPixels;
                 }
             }
@@ -191,7 +200,7 @@ void ImageComparator::exactComparison(const std::string& outputPath) const {
         double mismatchPercentage = 100.0 * mismatchedPixels / (canvasHeight * canvasWidth);
         std::cout << "Mismatch Percentage: " << mismatchPercentage << "%" << std::endl;
 
-        cv::imwrite(outputPath, resultImg);
+        cv::imwrite(outputPath, resultCanvas);
     } catch (const cv::Exception& e) {
         std::cerr << "OpenCV exception in exactComparison: " << e.what() << std::endl;
     } catch (const std::exception& e) {
@@ -227,16 +236,14 @@ void ImageComparator::ignoreDisplacementsComparison(const std::string& outputPat
         }
 
         // Create a new canvas with the max dimensions and fill with a background color (e.g., black)
-        cv::Mat canvas = cv::Mat::zeros(canvasHeight, canvasWidth, CV_8UC4);
-        cv::Mat baseCanvas = canvas.clone();
-        cv::Mat compareCanvas = canvas.clone();
+        cv::Mat resultCanvas = cv::Mat::zeros(canvasHeight, canvasWidth, CV_8UC4);
 
-        // Copy baseImg and compareImg into their respective canvases
-        baseImg.copyTo(baseCanvas(cv::Rect(0, 0, baseImg.cols, baseImg.rows)));
-        compareImg.copyTo(compareCanvas(cv::Rect(0, 0, compareImg.cols, compareImg.rows)));
+        // Copy the base image to the canvas
+        baseImg.copyTo(resultCanvas(cv::Rect(0, 0, baseImg.cols, baseImg.rows)));
 
-        cv::Mat resultImg = baseCanvas.clone();
-
+        // Copy the compare image to the canvas (with transparency)
+        // compareImg.copyTo(resultCanvas(cv::Rect(0, 0, compareImg.cols, compareImg.rows)), compareImg);
+       
         // cv::cvtColor(baseImg,baseImg,cv::COLOR_BGR2GRAY);
         // cv::cvtColor(compareImg,compareImg,cv::COLOR_BGR2GRAY);
 
@@ -253,23 +260,24 @@ void ImageComparator::ignoreDisplacementsComparison(const std::string& outputPat
             std::tie(endRow1, endRow2) = matchRows(endRow1, endRow2, -1, baseImg, compareImg);
 
             mismatchedRows.push_back(startRow2);
-            std::cout << startRow1 << " " << endRow1 << " " << startRow2 << " " << endRow2 << std::endl;
+            // std::cout << startRow1 << " " << endRow1 << " " << startRow2 << " " << endRow2 << std::endl;
 
             auto [height, bestRow] = getBestMatchingRectangle(startRow1, startRow2, endRow1, endRow2, baseImg, compareImg, mismatchedRows) ;
     
-            if (height == -1) {
+            if (height < 3 ) {
                 toMatchWith[startRow1] = startRow2;
                 startRow1++;
                 startRow2++;
             } else {
+                // std::cout << "Matching rectangle found: " << height << " " << bestRow << std::endl;
                 markMatchedRows(toMatchWith, startRow1, height);
                 startRow1 += height;
                 startRow2 = bestRow + height;
             }
         }
 
-        paintMismatchedCells(toMatchWith, baseCanvas, compareCanvas, resultImg);
-        cv::imwrite(outputPath, resultImg);
+        paintMismatchedCells(toMatchWith, baseImg, compareImg, resultCanvas);
+        cv::imwrite(outputPath, resultCanvas);
 
         double mismatchPercentage = 100.0 * mismatchedPixels / totalPixels;
         std::cout << mismatchedPixels << std::endl;
@@ -314,6 +322,7 @@ std::pair<int, int> ImageComparator::getBestMatchingRectangle(int startRow1, int
     int bestRow = 0;
 
     for (int row2 : mismatchedRows) {
+        if(std::abs(row2 - startRow1) > 200) continue; // skip if the row is too far (optimization
         int maxHeight = std::min(endRow1 - startRow1 + 1, endRow2 - row2 + 1);
         int height = binarySearchOnHeight(startRow1, row2, maxHeight, img1, img2);
 
@@ -325,7 +334,7 @@ std::pair<int, int> ImageComparator::getBestMatchingRectangle(int startRow1, int
     }
 
     for (int row2 = startRow2; row2 <= endRow2; ++row2) {
-       
+        if(std::abs(row2 - startRow1) > 200) continue;
         int maxHeight = std::min(endRow1 - startRow1 + 1, endRow2 - row2 + 1);
         int height = binarySearchOnHeight(startRow1, row2, maxHeight, img1, img2);
 

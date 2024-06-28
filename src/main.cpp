@@ -1,10 +1,17 @@
 #include "ImageComparator.h"
 #include "ErrorPixelTransform.h"
 #include <iostream>
+#include <vector>
 #include <sstream>
 #include <csignal>
 #include <cstdlib>
+#include <chrono>
+#include <fstream>
 
+//// PAGE UNDER CONSTRUCTION AS NEED TO DISCUSS ON STRUCTURING THE EXACT WAY OF INCOROPORATING INPUT OUTPUT WITTH DES/DCS
+
+/// @brief  
+/// @param signum 
 void signalHandler(int signum) {
     std::cerr << "Error: signal " << signum << " received." << std::endl;
     // Cleanup and close up stuff here
@@ -98,13 +105,15 @@ int main(int argc, char** argv) {
         }
     }
 
+    std::vector<double> exactTimes,ignoreDispTimes;
     // Loop through each image and compare
-    for (int i = 6; i < 12; ++i) {
+    for (int i = 23; i < 24; ++i) {
         std::string baseImagePath = baseImageDir + "/base" + std::to_string(i) + ".png";
         std::string compareImagePath = compareImageDir + "/compare" + std::to_string(i) + ".png";
-        std::string outputPath = outputDisplacementDir + "/output" + std::to_string(i) + ".png";
+        std::string outputExactPath = outputDir + "/output" + std::to_string(i) + ".png";
+        std::string outputDisplacementPath = outputDisplacementDir + "/output" + std::to_string(i) + ".png";
 
-        ImageComparator comparator(baseImagePath, compareImagePath);
+        ImageComparator comparator(compareImagePath, baseImagePath);
         comparator.setMismatchPaintColor(mismatchColor);
         comparator.setIgnoreAntialiasing(ignoreAntialiasing);
         comparator.setIgnoreColors(ignoreColors);
@@ -118,13 +127,24 @@ int main(int argc, char** argv) {
         } else if (!ignoreBoxes.empty()) {
             comparator.setIgnoreBoxes(ignoreBoxes);
         }
-        std::cout << "ignore Starts" << std::endl;
 
-        comparator.exactComparison(outputPath); 
-        signal(SIGSEGV, signalHandler);
-        comparator.ignoreDisplacementsComparison(outputPath);
 
-        std::cout << "Output image: " << outputPath << "\n";
+        auto start = std::chrono::high_resolution_clock::now();
+        comparator.exactComparison(outputExactPath);
+        auto stop = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> duration = stop - start;
+        exactTimes.push_back(duration.count());
+
+
+        start =  std::chrono::high_resolution_clock::now();
+        comparator.ignoreDisplacementsComparison(outputDisplacementPath);
+        stop = std::chrono::high_resolution_clock::now();
+        duration = stop - start;
+        ignoreDispTimes.push_back(duration.count());
+    }
+
+    for(int i = 0; i < ignoreDispTimes.size();i++){
+        std::cout << exactTimes[i] << " " << ignoreDispTimes[i] << std::endl;
     }
 
     return 0;

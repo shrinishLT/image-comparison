@@ -1,10 +1,31 @@
 //TO DO :
-1. correct calculation of mismatch percentage in case if ignore soelect and also discuss about mismatch % when image dimensions are diffrent
-2. correct implemetation of antialising 
-3. providing support for backaward compatibility for curent DCS.
+1. correct calculation of mismatch percentage in case if ignore select and also discuss about mismatch % when image dimensions are diffrent -- > subtract the ignored pixels
+2. correct implementation of antialising 
+3. providing support for backward compatibility for curent DCS.
 4. error handling for ignoreDraw ( overall a strong error handling over complete code review )
-5. separate out the concers and more readability 
+5. separate out the concerns and more readability 
 6. Handling for Seg faults 
+
+// TO DOs :
+1. code profiling and check for memory leaks 
+2. Add load testing support
+2. handle errors and logging 
+3. add unit tests  
+4. add resemble utils too 
+5. separate helper fuctions and main functions in image comparator 
+6. generate large set of results for resemble vs curr library and reports for performance and accuracy
+
+
+// Deployment Tasks 
+1. C++ library and compatibility adding for JS --->      shorthand easy solution 
+2. C++ AWS Lambda function + c++ web server    ---->     hard but peroformance wise good solution
+
+Points to Note: 
+1. Large Image issue in resemble is because if Node-Canvas , and here we use opencv::canvas,and hence this probably shouldnt fail, but need effective testing.
+
+// error handling
+1. handle loading of images 
+2. handle creation of canvas errors 
 
 //optimization : lot of calls  for the compare pixels fnction at the root lvl 
 1. cache ignoreBoxes/ boundingBoxes resutls for every pixel so that we dont loop everytime over the results
@@ -22,7 +43,7 @@
 discuss about height > 200 optimization  ::: discussion 
 
 
-// non primitive features
+// non primitive tasks
 9.2: Add largeImage handling (as we have to use canvas) --> to discuss  
 10. Unit Tests 
 11. Logging Framework  ------> spd:logging 
@@ -31,7 +52,7 @@ discuss about height > 200 optimization  ::: discussion
 // font smoothing corrections 
 
 
-// Future Features planned 
+// Future Features Planned 
 // floating regions feature 
 // points of mismatch feature (red animation)
 // origin shift for ignore Draw 
@@ -45,8 +66,13 @@ make
 ./image_comparison
 
 
+// DECISIONS TO TAKE 
+1. How to host (make a C++ server for now as per discussion with Vipul)
+2. Remove DCS (Lambda function) or not ---> to discuss ( maybe hard to integrate)
+3. Need to change default project settings for (scaleToSameSize) and others too. 
+
 // ADVANTAGES over resemble 
-1. faster by 4x , because in c++ 
+1. faster by 2-3 sec , because in c++ in normal cases 
 2. correct calculation of mismatch % in case of ignore select case 
 3. no pixelated images in case if alpha channels are not present and accurate error colors and feature shipping as opposed to resemble where pixels used to bloat due to poor error handling of alpha channels. 
 4. Liberty to add any new features as per custom request ------> font smoothing corrections POC in progress 
