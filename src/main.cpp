@@ -1,5 +1,6 @@
-#include "ImageComparator.h"
-#include "ErrorPixelTransform.h"
+#include "Comparator/ImageHandler.h"   
+#include "Comparator/ImageComparator.h"
+#include "Comparator/ErrorPixelTransform.h"
 #include <iostream>
 #include <vector>
 #include <sstream>
@@ -25,7 +26,6 @@ cv::Vec3b parseColor(const std::string& colorStr) {
     char delim;
 
     ss >> b >> delim >> g >> delim >> r;
-
     return cv::Vec3b(b, g, r);
 }
 
@@ -64,11 +64,11 @@ int main(int argc, char** argv) {
     std::string baseImageDir = "../images/base";
     std::string compareImageDir = "../images/compare";
     std::string outputDir = "../output/standard";
-    std::string outputDisplacementDir = "../output/hide_diff";
+    std::string outputDisplacementDir = "../output/hide_diff/base_diff";
 
     // Default options
     cv::Vec3b mismatchColor = cv::Vec3b(0, 0, 255); // Default red color
-    bool ignoreAntialiasing = false; // Default true
+    bool ignoreAntialiasing = true; // Default true
     bool ignoreColors = false; // Default false
     bool ignoreAlpha =  false; // Default false
     double pixelThreshold = 0.1; // Default threshold value
@@ -107,13 +107,19 @@ int main(int argc, char** argv) {
 
     std::vector<double> exactTimes,ignoreDispTimes;
     // Loop through each image and compare
-    for (int i = 23; i < 24; ++i) {
+    for (int i = 1; i < 27; ++i) {
         std::string baseImagePath = baseImageDir + "/base" + std::to_string(i) + ".png";
         std::string compareImagePath = compareImageDir + "/compare" + std::to_string(i) + ".png";
         std::string outputExactPath = outputDir + "/output" + std::to_string(i) + ".png";
         std::string outputDisplacementPath = outputDisplacementDir + "/output" + std::to_string(i) + ".png";
 
-        ImageComparator comparator(compareImagePath, baseImagePath);
+        ImageHandler handler1(baseImagePath);
+        ImageHandler handler2(compareImagePath);
+        auto img1 = handler1.loadImage();       // smart pointer to cv::Mat<>
+        auto img2 = handler2.loadImage();       // smart pointer to cv::Mat<>
+
+
+        ImageComparator comparator(img1, img2);
         comparator.setMismatchPaintColor(mismatchColor);
         comparator.setIgnoreAntialiasing(ignoreAntialiasing);
         comparator.setIgnoreColors(ignoreColors);
@@ -129,17 +135,17 @@ int main(int argc, char** argv) {
         }
 
 
-        auto start = std::chrono::high_resolution_clock::now();
-        comparator.exactComparison(outputExactPath);
-        auto stop = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> duration = stop - start;
-        exactTimes.push_back(duration.count());
+        // auto start = std::chrono::high_resolution_clock::now();
+        // comparator.exactComparison(outputExactPath);
+        // auto stop = std::chrono::high_resolution_clock::now();
+        // std::chrono::duration<double> duration = stop - start;
+        // exactTimes.push_back(duration.count());
 
 
-        start =  std::chrono::high_resolution_clock::now();
+        auto start =  std::chrono::high_resolution_clock::now();
         comparator.ignoreDisplacementsComparison(outputDisplacementPath);
-        stop = std::chrono::high_resolution_clock::now();
-        duration = stop - start;
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = stop - start;
         ignoreDispTimes.push_back(duration.count());
     }
 

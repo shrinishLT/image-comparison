@@ -1,10 +1,11 @@
 //TO DO :
 1. correct calculation of mismatch percentage in case if ignore select and also discuss about mismatch % when image dimensions are diffrent -- > subtract the ignored pixels
-2. correct implementation of antialising 
+2. add correct output format and also add feature for opaque and transparent
+3. add the improvement the elemenets from mismatches that are already removed
 3. providing support for backward compatibility for curent DCS.
-4. error handling for ignoreDraw ( overall a strong error handling over complete code review )
-5. separate out the concerns and more readability 
-6. Handling for Seg faults 
+4. error handling for ignoreDraw ( whether boxes arr is valid array given the input)
+5. separate out the concerns and more readability.
+6. Handling for Seg faults and clearing all memory in case of seg faults.
 
 // TO DOs :
 1. code profiling and check for memory leaks 
@@ -17,11 +18,12 @@
 
 
 // Deployment Tasks 
-1. C++ library and compatibility adding for JS --->      shorthand easy solution 
-2. C++ AWS Lambda function + c++ web server    ---->     hard but peroformance wise good solution
+1. C++ library and compatibility adding for JS  --->      shorthand easy solution 
+2. C++ AWS Lambda function + c++ web server     --->     hard but peroformance wise good solution
 
 Points to Note: 
-1. Large Image issue in resemble is because if Node-Canvas , and here we use opencv::canvas,and hence this probably shouldnt fail, but need effective testing.
+1. Large Image issue in resemble is because ff Node-Canvas , and here we use opencv::canvas,and hence this probably shouldnt fail, but need effective testing.
+2. pixels get bloated as seen in the demo image of zuppee image diff
 
 // error handling
 1. handle loading of images 
