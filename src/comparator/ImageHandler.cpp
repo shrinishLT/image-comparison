@@ -22,7 +22,6 @@ size_t ImageHandler::WriteCallback(void* contents, size_t size, size_t nmemb, vo
 }
 
 std::shared_ptr<cv::Mat> ImageHandler::downloadImage(const std::string& url) {
-    BOOST_LOG_NAMED_SCOPE(__func__);    
     CURL* curl;
     CURLcode res;
     std::string readBuffer;
@@ -37,16 +36,13 @@ std::shared_ptr<cv::Mat> ImageHandler::downloadImage(const std::string& url) {
             std::vector<uchar> data(readBuffer.begin(), readBuffer.end());
             auto img = std::make_shared<cv::Mat>(cv::imdecode(data, cv::IMREAD_UNCHANGED));
             if(img->empty()) {
-                BOOST_LOG_TRIVIAL(error) << "Downloaded data is not a valid image.";
                 throw std::runtime_error("Downloaded data is not a valid image.");
             }
             return img;
         } else {
-            BOOST_LOG_TRIVIAL(error) << "Failed to download image from URL.";
             throw std::runtime_error("Failed to download image from URL.");
         }
     }
-    BOOST_LOG_TRIVIAL(error) << "CURL initialization failed.";
     throw std::runtime_error("CURL initialization failed.");
 }
 
@@ -56,7 +52,6 @@ std::shared_ptr<cv::Mat> ImageHandler::loadImage() {
     } else {
         auto img = std::make_shared<cv::Mat>(cv::imread(imagePath, cv::IMREAD_UNCHANGED));
         if(img->empty()) {
-            BOOST_LOG_TRIVIAL(error) << "Failed to load image from path: " << imagePath;
             throw std::runtime_error("Failed to load image from path: " + imagePath);
         }
         return img;

@@ -8,9 +8,21 @@
 #include <chrono>
 #include <functional>
 
-
-ImageComparator::ImageComparator(const std::shared_ptr<cv::Mat>& img1, const std::shared_ptr<cv::Mat>& img2)
-    : img1(img1), img2(img2), mismatchPaintColor(cv::Vec3b(0, 0, 255)), ignoreAntialiasing(true), ignoreColors(false), ignoreAlpha(false), pixelThreshold(0.1), highlightTransparency(255), errorPixelTransform(ErrorPixelTransform::flat), canvasWidth(0), canvasHeight(0), scaleToSameSize(false), mismatchedPixels(0), logger("ImageComparator") {} // Default values
+// default constructor 
+ImageComparator::ImageComparator()
+    : mismatchPaintColor(cv::Vec3b(0, 0, 255)),
+      ignoreAntialiasing(true),
+      ignoreColors(false),
+      ignoreAlpha(false),
+      pixelThreshold(0.1),
+      highlightTransparency(255),
+      errorPixelTransform(ErrorPixelTransform::movement),
+      canvasWidth(0),
+      canvasHeight(0),
+      scaleToSameSize(false),
+      mismatchedPixels(0),
+      logger("ImageComparator") {
+}
 
 void ImageComparator::setMismatchPaintColor(const cv::Vec3b& color) {
     mismatchPaintColor = color;
@@ -80,7 +92,7 @@ bool ImageComparator::isInIgnoreBox(int x, int y) const {
 bool ImageComparator::comparePixels(const cv::Mat& img1, const cv::Mat& img2, int y1, int x1, int y2, int x2) const {
     try {
         if (x1 >= img1.cols  || y1 >= img1.rows || x2 >= img2.cols || y2 >= img2.rows) {
-            // pixles dont exist in both cases so its a mismatch 
+            // pixels dont exist in both cases so its a mismatch 
             return true;
         }
        
@@ -128,25 +140,20 @@ bool ImageComparator::comparePixels(const cv::Mat& img1, const cv::Mat& img2, in
         return true;
 
     } catch (const cv::Exception& e) {
-        BOOST_LOG_TRIVIAL(error) << "OpenCV exception in comparePixels: " << e.what();
         return false;
     } catch (const std::exception& e) {
-        BOOST_LOG_TRIVIAL(error) << "Standard exception in comparePixels: " << e.what();
         return false;
     } catch (...) {
-        BOOST_LOG_TRIVIAL(error) << "Unknown exception in comparePixels " << std::endl;
         return false;
     }
 }
 
-void ImageComparator::exactComparison(const std::string& outputPath) const {
-     BOOST_LOG_NAMED_SCOPE(__func__); 
+ExactComparisonResult ImageComparator::exactComparison(std::shared_ptr<cv::Mat> img1, std::shared_ptr<cv::Mat> img2) const {
+     ExactComparisonResult result;
     try {
        
-
         if (img1->empty() || img2->empty()) {
-            BOOST_LOG_TRIVIAL(error) << "Error reading images!";
-            return;
+            return result;
         }
 
         canvasWidth = std::max(img1->cols, img2->cols);
@@ -195,29 +202,60 @@ void ImageComparator::exactComparison(const std::string& outputPath) const {
             }
         }
 
+        // calculate mismatchPercentage
         double mismatchPercentage = 100.0 * mismatchedPixels / (canvasHeight * canvasWidth);
+        result.mismatchPercentage = mismatchPercentage;
 
-        BOOST_LOG_TRIVIAL(info) << "Mismatch Percentage: " << mismatchPercentage << "%";
-        cv::imwrite(outputPath, resultCanvas);
+        // Convert result image to buffer
+        std::vector<uchar> buffer;
+        cv::imencode(".png", resultCanvas, buffer);
+        result.resultBuffer = buffer;
+        
+        return result;
 
     } catch (const cv::Exception& e) {
-        BOOST_LOG_TRIVIAL(error) << "OpenCV exception in exactComparison: " << e.what();
-        return;
+        return result;
     } catch (const std::exception& e) {
-        BOOST_LOG_TRIVIAL(error) << "Standard exception in exactComparison: " << e.what();
-        return;
+        return result;
     } catch (...) {
-        BOOST_LOG_TRIVIAL(error) << "Unknown exception in exactComparison";
-        return;
+        return result;
+    }
+}
+SmartIgnoreComparisonResult ImageComparator::smartIgnoreComparison(std::shared_ptr<cv::Mat> img1, std::shared_ptr<cv::Mat> img2) const {
+    SmartIgnoreComparisonResult result;
+
+    try{
+        ExactComparisonResult baseResult = ignoreDisplacementsComparison(img1,img2);
+        result.baseMismatchPercentage = baseResult.mismatchPercentage;
+        result.baseResultBuffer = baseResult.resultBuffer;
+
+        ExactComparisonResult compareResult = ignoreDisplacementsComparison(img2,img1);
+        result.compareMismatchPercentage = compareResult.mismatchPercentage;
+        result.compareResultBuffer = compareResult.resultBuffer;
+
+        return result;
+    }
+    catch(const cv::Exception& e) {
+        std::cerr << "OpenCV exception in smartIgnoreComparison: " << e.what() << std::endl;
+        return result;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Standard exception in smartIgnoreComparison: " << e.what() << std::endl;
+        return result;
+    }
+    catch (...) {
+        std::cerr << "Unknown exception in smartIgnoreComparison" << std::endl;
+        return result;
     }
 }
 
-void ImageComparator::ignoreDisplacementsComparison(const std::string& outputPath) const {
-    try {
+ExactComparisonResult ImageComparator::ignoreDisplacementsComparison(std::shared_ptr<cv::Mat> img1, std::shared_ptr<cv::Mat> img2) const {
+    ExactComparisonResult result;
 
+    try {
         if (img1->empty() || img2->empty()) {
             std::cerr << "Could not open or find the images!" << std::endl;
-            return;
+            return result;
         }
         canvasWidth = std::max(img1->cols, img2->cols);
         canvasHeight = std::max(img1->rows, img2->rows);
@@ -271,18 +309,26 @@ void ImageComparator::ignoreDisplacementsComparison(const std::string& outputPat
         }
 
         paintMismatchedCells(toMatchWith, *img1, *img2, resultCanvas);
-        cv::imwrite(outputPath, resultCanvas);
 
         double mismatchPercentage = 100.0 * mismatchedPixels / totalPixels;
-        std::cout << mismatchedPixels << std::endl;
-        std::cout << "Mismatch Percentage: " << mismatchPercentage << "%" << std::endl;
+        result.mismatchPercentage = mismatchPercentage;
+       
+        // Convert result image to buffer
+        std::vector<uchar> buffer;
+        cv::imencode(".png", resultCanvas, buffer);
+        result.resultBuffer = buffer;
+        
+        return result;
 
     } catch (const cv::Exception& e) {
         std::cerr << "OpenCV exception in ignoreDisplacementsComparison: " << e.what() << std::endl;
+        return result;
     } catch (const std::exception& e) {
         std::cerr << "Standard exception in ignoreDisplacementsComparison: " << e.what() << std::endl;
+        return result;
     } catch (...) {
         std::cerr << "Unknown exception in ignoreDisplacementsComparison" << std::endl;
+        return result;
     }
 }
 

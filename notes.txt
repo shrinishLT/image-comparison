@@ -63,9 +63,20 @@ discuss about height > 200 optimization  ::: discussion
 
 RUN: 
 cd build 
-cmake .. -DCMAKE_BUILD_TYPE=Release  (Debug)
+cmake .. (Debug)
 make
 ./image_comparison
+
+// BUILD A SHARED LIBRARY TO use in GO lambda function 
+// make sure all the source files that need to be compiled are included
+// run the build.sh for easy and better execution
+g++ -shared -o build/libinterface.so -fPIC src/interface.cpp src/Comparator/ImageHandler.cpp src/Comparator/ImageComparator.cpp src/Comparator/ErrorPixelTransform.cpp
+
+// running build.sh 
+// You can run this script from the root directory of your C++ project to build the shared library.
+
+chmod +x build.sh
+./build.sh
 
 
 // DECISIONS TO TAKE 

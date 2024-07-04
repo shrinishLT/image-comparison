@@ -13,27 +13,37 @@ endif()
 # Add optimization flags for Release build
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native")
 
+# Set the target architecture for macOS
+set(CMAKE_OSX_ARCHITECTURES "x86_64")  # Or "arm64" for Apple Silicon
+
+# Set the path to vcpkg toolchain file
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE "/Users/shrinishv/Documents/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
+endif()
+
+# Include the vcpkg toolchain file
+include(${CMAKE_TOOLCHAIN_FILE})
+
 # Find required packages
 find_package(OpenCV REQUIRED)
-find_package(Boost REQUIRED COMPONENTS log log_setup system filesystem)
 find_package(CURL REQUIRED)
 find_package(GTest REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 
 # Include directories
 include_directories(
     ${OpenCV_INCLUDE_DIRS}
-    ${Boost_INCLUDE_DIRS}
     ${CURL_INCLUDE_DIRS}
     ${GTEST_INCLUDE_DIRS}
+    ${SPDLOG_INCLUDE_DIRS}
+    /Users/shrinishv/Documents/vcpkg/installed/x64-osx/include  # Explicit path to spdlog
     include
 )
 
 # Source files
 set(SOURCES
-    # Main
-    src/main.cpp
+    src/interface.cpp
 
-    # Comparator
     src/comparator/ImageHandler.cpp
     src/comparator/ImageComparator.cpp
     src/comparator/ImageUtils.cpp
@@ -47,19 +57,33 @@ enable_testing()
 add_executable(run_tests
     tests/main_test.cpp
     tests/comparator/test_image_comparator.cpp
+    tests/comparator/test_image_handler.cpp
+    tests/comparator/test_image_utils.cpp
+    tests/comparator/test_image_error_pixel_transform.cpp
 )
 
 # Link Google Test libraries
-target_link_libraries(run_tests ${GTEST_LIBRARIES} pthread)
+target_link_libraries(run_tests GTest::GTest GTest::Main pthread)
 
 # Add main executable
 add_executable(image_comparison ${SOURCES})
 
+# Add shared library
+add_library(interface SHARED ${SOURCES})
+
+# Link shared library with required libraries
+target_link_libraries(interface
+    ${OpenCV_LIBS}
+    ${CURL_LIBRARIES}
+    spdlog::spdlog
+)
+
+
 # Link main executable with required libraries
 target_link_libraries(image_comparison
     ${OpenCV_LIBS}
-    ${Boost_LIBRARIES}
     ${CURL_LIBRARIES}
+    spdlog::spdlog
 )
 
 # Add tests

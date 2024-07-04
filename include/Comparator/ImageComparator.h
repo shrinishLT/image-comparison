@@ -14,9 +14,21 @@ struct Box {
     int right;
 };
 
+struct ExactComparisonResult {
+    std::vector<uchar> resultBuffer;
+    double mismatchPercentage;
+};
+
+struct SmartIgnoreComparisonResult {
+    std::vector<uchar> baseResultBuffer;
+    std::vector<uchar> compareResultBuffer;
+    double compareMismatchPercentage;
+    double baseMismatchPercentage;
+};
+
 class ImageComparator {
 public:
-    ImageComparator(const std::shared_ptr<cv::Mat>& img1, const std::shared_ptr<cv::Mat>& img2);
+    ImageComparator();
 
     // Setters
     void setMismatchPaintColor(const cv::Vec3b& color);
@@ -29,12 +41,11 @@ public:
     void setIgnoreBoxes(const std::vector<Box>& boxes);
     void setHighlightTransparency(int value);
     void setErrorPixelTransform(void (*transformFunc)(cv::Vec4b&, const cv::Vec4b&, const cv::Vec4b&, const cv::Vec4b&));
-    void exactComparison(const std::string& outputPath) const;
-    void ignoreDisplacementsComparison(const std::string& outputPath) const;
+    ExactComparisonResult exactComparison(std::shared_ptr<cv::Mat> img1, std::shared_ptr<cv::Mat> img2) const;
+    ExactComparisonResult ignoreDisplacementsComparison(std::shared_ptr<cv::Mat> img1, std::shared_ptr<cv::Mat> img2) const;
+    SmartIgnoreComparisonResult smartIgnoreComparison(std::shared_ptr<cv::Mat> img1, std::shared_ptr<cv::Mat> img2) const;
 
 private:
-    std::shared_ptr<cv::Mat> img1;
-    std::shared_ptr<cv::Mat> img2;
     cv::Vec3b mismatchPaintColor;
     bool ignoreAntialiasing;
     bool ignoreColors;

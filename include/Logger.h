@@ -1,32 +1,36 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#include <boost/log/core.hpp>
-#include <boost/log/trivial.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/utility/setup/console.hpp>
-#include <boost/log/sources/logger.hpp>
-#include <boost/log/sources/severity_logger.hpp>
-#include <boost/log/attributes/named_scope.hpp>
-#include <boost/log/attributes/constant.hpp>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <memory>
 #include <string>
 
 class Logger {
 public:
-    Logger(const std::string& className) {
-        boost::log::add_console_log(
-            std::clog,  // Using std::clog for better performance than std::cout
-            boost::log::keywords::format = (
-                boost::log::expressions::stream
-                    << boost::log::trivial::severity << " :: "
-                    << className << "::"
-                    << boost::log::expressions::attr<boost::log::attributes::named_scope::value_type>("Scope") << " :: "
-                    << boost::log::expressions::smessage
-            )
-        );
-        boost::log::core::get()->add_global_attribute("Scope", boost::log::attributes::named_scope());
-        boost::log::core::get()->add_global_attribute("ClassName", boost::log::attributes::constant<std::string>(className));
+    Logger(const std::string& className) : className_(className) {
+        if (spdlog::get(className) != nullptr) {
+            logger_ = spdlog::get(className);
+        } else {
+            auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+            logger_ = std::make_shared<spdlog::logger>(className, console_sink);
+            spdlog::register_logger(logger_);
+            logger_->set_level(spdlog::level::info);
+            logger_->set_pattern("[%l] [%n::%s] %v");
+        }
     }
+
+    void logInfo(const std::string& func, const std::string& message) {
+        logger_->info("[{}::{}] {}", className_, func, message);
+    }
+
+    void logError(const std::string& func, const std::string& message) {
+        logger_->error("[{}::{}] {}", className_, func, message);
+    }
+
+private:
+    std::shared_ptr<spdlog::logger> logger_;
+    std::string className_;
 };
 
 #endif // LOGGER_H
