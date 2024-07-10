@@ -15,7 +15,7 @@ ImageComparator::ImageComparator()
       ignoreColors(false),
       ignoreAlpha(false),
       pixelThreshold(0.1),
-      highlightTransparency(255),
+      highlightTransparency(0),
       errorPixelTransform(ErrorPixelTransform::movement),
       canvasWidth(0),
       canvasHeight(0),
@@ -140,10 +140,13 @@ bool ImageComparator::comparePixels(const cv::Mat& img1, const cv::Mat& img2, in
         return true;
 
     } catch (const cv::Exception& e) {
+        logger.logInternalError(__func__, std::string("OpenCV exception: ") + e.what());
         return false;
     } catch (const std::exception& e) {
+        logger.logInternalError(__func__, std::string("Standard exception: ") + e.what());
         return false;
     } catch (...) {
+        logger.logInternalError(__func__, "Unknown exception");
         return false;
     }
 }
@@ -153,6 +156,7 @@ ExactComparisonResult ImageComparator::exactComparison(std::shared_ptr<cv::Mat> 
     try {
        
         if (img1->empty() || img2->empty()) {
+            logger.logInternalError(__func__, "Input images are empty");
             return result;
         }
 
@@ -175,9 +179,6 @@ ExactComparisonResult ImageComparator::exactComparison(std::shared_ptr<cv::Mat> 
         // Create a new canvas with the max dimensions and fill with a background color (e.g., black)
         cv::Mat resultCanvas = cv::Mat::zeros(canvasHeight, canvasWidth, CV_8UC4);
 
-        // Copy the base image to the canvas
-        img1->copyTo(resultCanvas(cv::Rect(0, 0, img1->cols, img1->rows)));
-
 
         // Convert mismatchPaintColor from Vec3b to Vec4b
         cv::Vec4b mismatchColor4b(mismatchPaintColor[0], mismatchPaintColor[1], mismatchPaintColor[2], highlightTransparency);
@@ -199,6 +200,9 @@ ExactComparisonResult ImageComparator::exactComparison(std::shared_ptr<cv::Mat> 
                     errorPixelTransform(resultCanvas.at<cv::Vec4b>(y, x),basePixel,comparePixel, mismatchColor4b);
                     ++mismatchedPixels;
                 }
+                else{
+                    ImageUtils::drawGrayPixel((*img2).at<cv::Vec4b>(y,x),0.5,resultCanvas.at<cv::Vec4b>(y,x));
+                }
             }
         }
 
@@ -214,13 +218,18 @@ ExactComparisonResult ImageComparator::exactComparison(std::shared_ptr<cv::Mat> 
         return result;
 
     } catch (const cv::Exception& e) {
+        logger.handleError(__func__, std::string("Exception occurred: ") + e.what());
         return result;
     } catch (const std::exception& e) {
+        logger.handleError(__func__, std::string("Exception occurred: ") + e.what());
         return result;
     } catch (...) {
+        logger.handleError(__func__, "Unknown exception occurred");
         return result;
     }
 }
+
+
 SmartIgnoreComparisonResult ImageComparator::smartIgnoreComparison(std::shared_ptr<cv::Mat> img1, std::shared_ptr<cv::Mat> img2) const {
     SmartIgnoreComparisonResult result;
 
@@ -236,15 +245,15 @@ SmartIgnoreComparisonResult ImageComparator::smartIgnoreComparison(std::shared_p
         return result;
     }
     catch(const cv::Exception& e) {
-        std::cerr << "OpenCV exception in smartIgnoreComparison: " << e.what() << std::endl;
+        logger.handleError(__func__,  std::string("OpenCV Exception occurred: ") + e.what());
         return result;
     }
     catch (const std::exception& e) {
-        std::cerr << "Standard exception in smartIgnoreComparison: " << e.what() << std::endl;
+        logger.handleError(__func__, std::string("Standard Exception occurred: ") + e.what());
         return result;
     }
     catch (...) {
-        std::cerr << "Unknown exception in smartIgnoreComparison" << std::endl;
+        logger.handleError(__func__, "Unknown exception occurred");
         return result;
     }
 }
@@ -254,11 +263,11 @@ ExactComparisonResult ImageComparator::ignoreDisplacementsComparison(std::shared
 
     try {
         if (img1->empty() || img2->empty()) {
-            std::cerr << "Could not open or find the images!" << std::endl;
+            logger.logInternalError(__func__, "Input images are empty");
             return result;
         }
-        canvasWidth = std::max(img1->cols, img2->cols);
-        canvasHeight = std::max(img1->rows, img2->rows);
+        canvasWidth = img1->cols;
+        canvasHeight = img1->rows;
 
         if(scaleToSameSize){
             cv::resize(*img1, *img1, cv::Size(canvasWidth, canvasHeight));
@@ -274,10 +283,8 @@ ExactComparisonResult ImageComparator::ignoreDisplacementsComparison(std::shared
         }
 
         // Create a new canvas with the max dimensions and fill with a background color (e.g., black)
-        cv::Mat resultCanvas = cv::Mat::zeros(canvasHeight, canvasWidth, CV_8UC4);
-
-        // Copy the base image to the canvas
-        img1->copyTo(resultCanvas(cv::Rect(0, 0, img1->cols, img1->rows)));
+        cv::Mat resultCanvas = cv::Mat::ones(canvasHeight, canvasWidth, CV_8UC4) * 255;
+ 
 
         std::vector<int> mismatchedRows;
         std::vector<int> toMatchWith(canvasHeight, -1);
@@ -321,13 +328,13 @@ ExactComparisonResult ImageComparator::ignoreDisplacementsComparison(std::shared
         return result;
 
     } catch (const cv::Exception& e) {
-        std::cerr << "OpenCV exception in ignoreDisplacementsComparison: " << e.what() << std::endl;
+        logger.handleError(__func__,  std::string("OpenCV Exception occurred: ") + e.what());
         return result;
     } catch (const std::exception& e) {
-        std::cerr << "Standard exception in ignoreDisplacementsComparison: " << e.what() << std::endl;
+        logger.handleError(__func__, std::string("Standard Exception occurred: ") + e.what());
         return result;
     } catch (...) {
-        std::cerr << "Unknown exception in ignoreDisplacementsComparison" << std::endl;
+        logger.handleError(__func__, "Unknown exception occurred");
         return result;
     }
 }
@@ -396,13 +403,22 @@ void ImageComparator::paintMismatchedCells(const std::vector<int>& toMatchWith, 
     for (size_t row1 = 0; row1 < toMatchWith.size(); ++row1) {
         int row2 = toMatchWith[row1];
         if (row2 == -1) {
-            continue;
+           for(int col = 0; col < img1.cols;++col) {
+            ImageUtils::drawGrayPixel(img1.at<cv::Vec4b>(row1, col),0.5,paintedImg.at<cv::Vec4b>(row1, col));
+           }
+           continue;
         }
         for (int col = 0; col < std::min(img1.cols,img2.cols); ++col) {
-            if (row1 < img1.rows && row2 < img2.rows && comparePixels(img1, img2, static_cast<int>(row1), col, row2, col)) {
-                mismatchedPixels++;
-                cv::Vec4b mismatchColor4b(mismatchPaintColor[0], mismatchPaintColor[1], mismatchPaintColor[2], highlightTransparency);
-                errorPixelTransform(paintedImg.at<cv::Vec4b>(row1, col), img1.at<cv::Vec4b>(row1, col), img2.at<cv::Vec4b>(row2, col), mismatchColor4b); // Use the error pixel transform function
+            if (row1 < img1.rows && row2 < img2.rows) {
+                if(comparePixels(img1, img2, static_cast<int>(row1), col, row2, col)){
+                    mismatchedPixels++;
+                    cv::Vec4b mismatchColor4b(mismatchPaintColor[0], mismatchPaintColor[1], mismatchPaintColor[2], highlightTransparency);
+                    errorPixelTransform(paintedImg.at<cv::Vec4b>(row1, col), img1.at<cv::Vec4b>(row1, col), img2.at<cv::Vec4b>(row2, col), mismatchColor4b); // Use the error pixel transform function
+                    // cv::rectangle(paintedImg, cv::Point(col, row1), cv::Point(col + 1, row1 + 1), cv::Scalar(255, 255, 255), 1);
+                }
+                else{
+                    ImageUtils::drawGrayPixel(img1.at<cv::Vec4b>(row1, col),0.5,paintedImg.at<cv::Vec4b>(row1, col)); // Use the error pixel transform function
+                }
             }
         }
     }

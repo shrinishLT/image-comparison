@@ -3,6 +3,7 @@
 
 #include <opencv2/opencv.hpp>
 #include <string>
+#include <memory>
 #include "Logger.h"  // Include logging
 
 class ImageHandler {

@@ -1,36 +1,72 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <memory>
 #include <string>
 
+/**
+ * Logger Class
+ * 
+ * This Logger class handles two types of logging:
+ * 
+ * 1. JSON Responses to stdout:
+ *    - These logs are intended to be captured by the code when the binary is executed.
+ *    - The output is always in a standard JSON format with two fields: 
+ *      - "status": either "success" or "error"
+ *      - "result": a dynamic JSON object representing the result of the executed function.
+ * 
+ * 2. Internal Logs to stderr:
+ *    - These logs are for internal debugging purposes.
+ *    - The format includes severity, class name, function name, and message.
+ *    - Severity levels: INFO and ERROR.
+ *    - These logs do not interfere with the JSON output.
+ * 
+ * Example Usage:
+ * 
+ *     Logger logger("MyClass");
+ *     
+ *     // Simulating a function result
+ *     nlohmann::json result;
+ *     result["key"] = "value";
+ *     
+ *     // Log a JSON response
+ *     logger.logJsonResponse("success", result.dump());
+ *     
+ *     // Log internal messages
+ *     logger.logInternalInfo(__func__, "This is an info message");
+ *     logger.logInternalError(__func__, "This is an error message");
+ *     
+ */
 class Logger {
 public:
-    Logger(const std::string& className) : className_(className) {
-        if (spdlog::get(className) != nullptr) {
-            logger_ = spdlog::get(className);
-        } else {
-            auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-            logger_ = std::make_shared<spdlog::logger>(className, console_sink);
-            spdlog::register_logger(logger_);
-            logger_->set_level(spdlog::level::info);
-            logger_->set_pattern("[%l] [%n::%s] %v");
-        }
-    }
+    // Enum for internal log severity levels
+    enum class Severity {
+        INFO,
+        ERROR
+    };
 
-    void logInfo(const std::string& func, const std::string& message) {
-        logger_->info("[{}::{}] {}", className_, func, message);
-    }
+    // Constructor accepting the class name
+    Logger(const std::string& className);
 
-    void logError(const std::string& func, const std::string& message) {
-        logger_->error("[{}::{}] {}", className_, func, message);
-    }
+    // Method to log JSON responses to stdout
+    void logJsonResponse(const std::string& status, const std::string& result) const;
+
+    // Method to log internal messages to stderr with severity
+    void logInternal(Severity severity, const std::string& func, const std::string& message) const;
+
+    // Convenience method to log internal info messages
+    void logInternalInfo(const std::string& func, const std::string& message) const;
+
+    // Convenience method to log internal error messages
+    void logInternalError(const std::string& func, const std::string& message) const;
+
+    // Method to handle errors by logging JSON response and exiting
+    void handleError(const std::string& func, const std::string& message) const;
 
 private:
-    std::shared_ptr<spdlog::logger> logger_;
     std::string className_;
+
+    // Helper method to convert Severity enum to string
+    std::string toString(Severity severity) const;
 };
 
 #endif // LOGGER_H

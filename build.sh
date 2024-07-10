@@ -1,19 +1,23 @@
-# Create the build directory if it doesn't exist
-mkdir -p build
+# remove existing docker images
+docker rm -f compare-engine-container
 
-# Compile the shared library -> add all the source files that should be compiled
-g++ -shared -o build/imageComparisonInterface.so -fPIC -std=c++17 -I./include -I./include/Comparator \
-    -I/usr/local/include/opencv4 -I/usr/local/include/spdlog -I/usr/local/include \
-    src/interface.cpp src/comparator/ImageHandler.cpp src/comparator/ImageComparator.cpp \
-    src/comparator/ErrorPixelTransform.cpp src/comparator/ImageUtils.cpp \
-    -L/usr/local/lib -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs -lcurl -lspdlog
+# Build the Docker image (if not already built)
+docker build -t compare-engine .
 
-# Check if the compilation was successful
-if [ $? -eq 0 ]; then
-  echo "Shared library built successfully."
-else
-  echo "Failed to build shared library."
-  exit 1
-fi
+# run the container in detached mode 
+docker run -d --name compare-engine-container compare-engine
 
-## can be run if you are on a linux machine
+# Copy the binary from the Docker container to the local machine
+docker cp compare-engine-container:/app/build/image_comparison ./lib/compare-engine-bin
+
+docker cp compare-engine-container:/tmp/lib64.tar.gz ./lib64.tar.gz
+mkdir -p ./lib/lib64
+sudo tar -xzvf ./lib64.tar.gz -C ./lib/lib64 --strip-components=2
+
+
+# Stop the Docker container
+docker stop compare-engine-container
+
+# Remove the Docker container
+docker rm -f compare-engine-container
+

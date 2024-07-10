@@ -2,6 +2,7 @@
 #define IMAGECOMPARATOR_H
 
 #include <opencv2/opencv.hpp>
+#include <memory>
 #include <string>
 #include <vector>
 #include <utility> // For std::pair
@@ -57,7 +58,7 @@ private:
     std::vector<Box> ignoreBoxes;
     void (*errorPixelTransform)(cv::Vec4b&, const cv::Vec4b&, const cv::Vec4b&, const cv::Vec4b&);
 
-    Logger logger; // Logger instance
+    Logger logger;
 
     mutable int canvasWidth;
     mutable int canvasHeight;

@@ -6,6 +6,7 @@
 4. error handling for ignoreDraw ( whether boxes arr is valid array given the input)
 5. separate out the concerns and more readability.
 6. Handling for Seg faults and clearing all memory in case of seg faults.
+paint the left over mismatched rows
 
 // TO DOs :
 1. code profiling and check for memory leaks 
@@ -19,7 +20,7 @@
 
 // Deployment Tasks 
 1. C++ library and compatibility adding for JS  --->      shorthand easy solution 
-2. C++ AWS Lambda function + c++ web server     --->     hard but peroformance wise good solution
+2. C++ AWS Lambda function + c++ web server     --->      hard but peroformance wise good solution
 
 Points to Note: 
 1. Large Image issue in resemble is because ff Node-Canvas , and here we use opencv::canvas,and hence this probably shouldnt fail, but need effective testing.
@@ -46,10 +47,7 @@ discuss about height > 200 optimization  ::: discussion
 
 
 // non primitive tasks
-9.2: Add largeImage handling (as we have to use canvas) --> to discuss  
 10. Unit Tests 
-11. Logging Framework  ------> spd:logging 
-12. Error Handling Framework  -------> boost:leaf
 // check for memory leaks etc issues 
 // font smoothing corrections 
 
@@ -62,25 +60,18 @@ discuss about height > 200 optimization  ::: discussion
 // Layout parser 
 
 RUN: 
+rm -rf build 
+mkdir build 
 cd build 
-cmake .. (Debug)
+cmake .. -DCMAKE_TOOLCHAIN_FILE=/Users/shrinishv/Documents/vcpkg/scripts/buildsystems/vcpkg.cmake
 make
 ./image_comparison
 
-// BUILD A SHARED LIBRARY TO use in GO lambda function 
-// make sure all the source files that need to be compiled are included
-// run the build.sh for easy and better execution
-g++ -shared -o build/libinterface.so -fPIC src/interface.cpp src/Comparator/ImageHandler.cpp src/Comparator/ImageComparator.cpp src/Comparator/ErrorPixelTransform.cpp
 
-// running build.sh 
-// You can run this script from the root directory of your C++ project to build the shared library.
 
-chmod +x build.sh
-./build.sh
 
 
 // DECISIONS TO TAKE 
-1. How to host (make a C++ server for now as per discussion with Vipul)
 2. Remove DCS (Lambda function) or not ---> to discuss ( maybe hard to integrate)
 3. Need to change default project settings for (scaleToSameSize) and others too. 
 

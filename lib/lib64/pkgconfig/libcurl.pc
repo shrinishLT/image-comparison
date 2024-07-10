@@ -1,0 +1,42 @@
+#***************************************************************************
+#                                  _   _ ____  _
+#  Project                     ___| | | |  _ \| |
+#                             / __| | | | |_) | |
+#                            | (__| |_| |  _ <| |___
+#                             \___|\___/|_| \_\_____|
+#
+# Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
+#
+# This software is licensed as described in the file COPYING, which
+# you should have received as part of this distribution. The terms
+# are also available at https://curl.se/docs/copyright.html.
+#
+# You may opt to use, copy, modify, merge, publish, distribute and/or sell
+# copies of the Software, and permit persons to whom the Software is
+# furnished to do so, under the terms of the COPYING file.
+#
+# This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
+# KIND, either express or implied.
+#
+# SPDX-License-Identifier: curl
+#
+###########################################################################
+
+# This should most probably benefit from getting a "Requires:" field added
+# dynamically by configure.
+#
+prefix=/usr
+exec_prefix=/usr
+libdir=/usr/lib64
+includedir=/usr/include
+supported_protocols="DICT FILE FTP FTPS GOPHER GOPHERS HTTP HTTPS IMAP IMAPS LDAP LDAPS MQTT POP3 POP3S RTSP SCP SFTP SMB SMBS SMTP SMTPS TELNET TFTP WS WSS"
+supported_features="AsynchDNS GSS-API HSTS HTTP2 HTTPS-proxy IDN IPv6 Kerberos Largefile NTLM NTLM_WB PSL SPNEGO SSL UnixSockets alt-svc libz threadsafe"
+configure_options=" '--build=x86_64-koji-linux-gnu' '--host=x86_64-koji-linux-gnu' '--program-prefix=' '--disable-dependency-tracking' '--prefix=/usr' '--exec-prefix=/usr' '--bindir=/usr/bin' '--sbindir=/usr/sbin' '--sysconfdir=/etc' '--datadir=/usr/share' '--includedir=/usr/include' '--libdir=/usr/lib64' '--libexecdir=/usr/libexec' '--localstatedir=/var' '--sharedstatedir=/var/lib' '--mandir=/usr/share/man' '--infodir=/usr/share/info' '--cache-file=../config.cache' '--disable-static' '--enable-hsts' '--enable-ipv6' '--enable-symbol-hiding' '--enable-threaded-resolver' '--without-zstd' '--with-gssapi' '--with-libidn2' '--with-nghttp2' '--with-ssl' '--with-ca-bundle=/etc/pki/tls/certs/ca-bundle.crt' '--enable-dict' '--enable-gopher' '--enable-imap' '--enable-ldap' '--enable-ldaps' '--enable-manual' '--enable-mqtt' '--enable-ntlm' '--enable-ntlm-wb' '--enable-pop3' '--enable-rtsp' '--enable-smb' '--enable-smtp' '--enable-telnet' '--enable-tftp' '--enable-tls-srp' '--enable-websockets' '--without-brotli' '--with-libpsl' '--with-libssh2' 'build_alias=x86_64-koji-linux-gnu' 'host_alias=x86_64-koji-linux-gnu' 'CFLAGS=-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector-strong --param=ssp-buffer-size=4 -grecord-gcc-switches    -m64 -mtune=generic' 'LDFLAGS=-Wl,-z,relro '"
+
+Name: libcurl
+URL: https://curl.se/
+Description: Library to transfer files with ftp, http, etc.
+Version: 8.3.0
+Libs: -L${libdir} -lcurl 
+Libs.private: -lnghttp2 -lidn2 -lssh2 -lssh2 -lpsl -lssl -lcrypto -lssl -lcrypto -lgssapi_krb5 -lldap -llber -lz -pthread
+Cflags: -I${includedir} 

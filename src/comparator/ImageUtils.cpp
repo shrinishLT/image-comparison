@@ -165,6 +165,38 @@ bool ImageUtils::doesIntensityMatch(cv::Vec4b pixel1, cv::Vec4b pixel2) {
     if (std::abs(intensity1 - intensity2) < 1e-5) {
         return true;
     }
-
     return false;
 }
+
+// blend semi-transparent color with white
+double ImageUtils::blend(double c, double a){
+    return 255 + (c - 255) * a;
+}
+
+void ImageUtils::drawPixel(cv::Vec4b& pixel, double r, double g, double b){
+    pixel[0] = b;
+    pixel[1] = g;
+    pixel[2] = r;
+    pixel[3] = 255; 
+}
+
+double ImageUtils::getBrightness(double r, double g, double b) {
+    return 0.3 * r + 0.59 * g + 0.11 * b;
+}
+
+void ImageUtils::drawGrayPixel(const cv::Vec4b& imgPixel, double alpha, cv::Vec4b& outputPixel){
+    alpha = 0.5;
+    double  b = imgPixel[0];
+    double  g = imgPixel[1];
+    double  r = imgPixel[2];         
+    // double val = blend(rgb2y(r,g,b), alpha * imgPixel[3] / 255);
+    // drawPixel(outputPixel, val,val,val);
+     // Set the output pixel with the same color but reduced opacity
+    double brightness = getBrightness(r,g,b);
+    brightness = 1.0;
+    outputPixel[2] = static_cast<uchar>(r*alpha);
+    outputPixel[1] = static_cast<uchar>(g*alpha);
+    outputPixel[0] = static_cast<uchar>(b*alpha);
+    outputPixel[3] = static_cast<uchar>(imgPixel[3]);
+}
+

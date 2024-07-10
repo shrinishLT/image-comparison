@@ -16,38 +16,35 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native")
 # Set the target architecture for macOS
 set(CMAKE_OSX_ARCHITECTURES "x86_64")  # Or "arm64" for Apple Silicon
 
-# Set the path to vcpkg toolchain file
-if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-    set(CMAKE_TOOLCHAIN_FILE "/Users/shrinishv/Documents/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
+# Include the vcpkg toolchain file if it is defined
+if(DEFINED CMAKE_TOOLCHAIN_FILE)
+  include(${CMAKE_TOOLCHAIN_FILE})
 endif()
-
-# Include the vcpkg toolchain file
-include(${CMAKE_TOOLCHAIN_FILE})
 
 # Find required packages
 find_package(OpenCV REQUIRED)
 find_package(CURL REQUIRED)
 find_package(GTest REQUIRED)
-find_package(spdlog CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 # Include directories
 include_directories(
     ${OpenCV_INCLUDE_DIRS}
     ${CURL_INCLUDE_DIRS}
-    ${GTEST_INCLUDE_DIRS}
-    ${SPDLOG_INCLUDE_DIRS}
-    /Users/shrinishv/Documents/vcpkg/installed/x64-osx/include  # Explicit path to spdlog
     include
 )
 
 # Source files
 set(SOURCES
-    src/interface.cpp
+    src/main.cpp
+    src/Logger.cpp
+    src/JsonUtils.cpp
 
     src/comparator/ImageHandler.cpp
     src/comparator/ImageComparator.cpp
     src/comparator/ImageUtils.cpp
     src/comparator/ErrorPixelTransform.cpp
+
 )
 
 # Google Test
@@ -68,22 +65,11 @@ target_link_libraries(run_tests GTest::GTest GTest::Main pthread)
 # Add main executable
 add_executable(image_comparison ${SOURCES})
 
-# Add shared library
-add_library(interface SHARED ${SOURCES})
-
-# Link shared library with required libraries
-target_link_libraries(interface
-    ${OpenCV_LIBS}
-    ${CURL_LIBRARIES}
-    spdlog::spdlog
-)
-
-
 # Link main executable with required libraries
 target_link_libraries(image_comparison
     ${OpenCV_LIBS}
     ${CURL_LIBRARIES}
-    spdlog::spdlog
+    nlohmann_json::nlohmann_json
 )
 
 # Add tests
