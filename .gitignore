@@ -5,6 +5,8 @@
 *.dll
 *.dylib
 *.exe
+#Ignore zip files
+*.tar.gz
 
 # Ignore build directories
 /build/
